@@ -25,7 +25,7 @@ kotlin {
         androidMain.dependencies {
             implementation("androidx.activity:activity-compose:1.10.1")
             implementation("com.google.zxing:core:3.5.3")
-            implementation("androidx.compose.material:material-icons-extended:1.8.0")
+            implementation("androidx.compose.material:material-icons-extended:1.7.8")
             implementation("io.ktor:ktor-client-okhttp:3.1.2")
         }
         iosMain.dependencies { implementation("io.ktor:ktor-client-darwin:3.1.2") }
