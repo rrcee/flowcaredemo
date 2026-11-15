@@ -1,0 +1,3 @@
+export function Cloud({variant=0}:{variant?:number}){
+ return <svg viewBox="0 0 300 140" fill="none" xmlns="http://www.w3.org/2000/svg"><path d={variant%2===0?'M55 121C26 121 12 105 16 85C20 67 36 59 54 61C51 34 71 18 94 22C110 2 151 7 162 35C189 19 217 38 219 61C252 52 280 73 278 94C277 113 259 121 236 121H55Z':'M44 120C22 120 11 102 19 87C24 75 36 72 51 73C46 48 65 30 87 34C98 13 129 7 149 27C169 17 196 29 201 50C226 40 251 55 251 77C275 75 290 91 282 108C277 120 264 123 241 123L44 120Z'} fill="#fffdf5" stroke="#7c9bcd" strokeWidth="1.5"/><path d="M57 110H231" stroke="#d1dff4" strokeWidth="2" strokeLinecap="round"/></svg>;
+}
