@@ -52,7 +52,7 @@ jobs:
           command -v xcodegen || brew install xcodegen
           cd iosApp
           xcodegen generate
-          xcodebuild -project FlowCare.xcodeproj -scheme FlowCare -sdk iphonesimulator -configuration Debug -derivedDataPath build CODE_SIGNING_ALLOWED=NO build
+          xcodebuild -project FlowCare.xcodeproj -scheme FlowCare -sdk iphonesimulator -configuration Debug -derivedDataPath build CODE_SIGNING_ALLOWED=NO ARCHS=arm64 ONLY_ACTIVE_ARCH=YES build
       - uses: actions/upload-artifact@v4
         with:
           name: FlowCare-iOS-simulator-app
