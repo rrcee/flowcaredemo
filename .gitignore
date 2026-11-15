@@ -1,0 +1,9 @@
+*.db
+.venv/
+__pycache__/
+.pytest_cache/
+.gradle/
+.kotlin/
+**/build/
+local.properties
+.DS_Store
