@@ -1,5 +1,10 @@
 name: Checks
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   backend:
     runs-on: ubuntu-latest
@@ -19,10 +24,17 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools platforms;android-35 build-tools;35.0.0
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
-      - run: gradle :composeApp:assembleDebug
+      - run: gradle :composeApp:assembleDebug :composeApp:testDebugUnitTest :composeApp:lintDebug --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FlowCare-Android-debug
+          path: composeApp/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
   ios-framework:
     runs-on: macos-latest
     steps:
@@ -34,4 +46,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
-      - run: gradle :composeApp:linkDebugFrameworkIosSimulatorArm64
+      - run: gradle :composeApp:linkDebugFrameworkIosSimulatorArm64 --stacktrace
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FlowCare-iOS-simulator-framework
+          path: composeApp/build/bin/iosSimulatorArm64/debugFramework/
+          if-no-files-found: error
