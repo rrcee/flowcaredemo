@@ -65,4 +65,4 @@ cd backend
 pytest -q
 ```
 
-CI checks backend behavior, Android compilation and iOS simulator framework compilation. Local verification status is recorded in docs/VALIDATION.md.
+CI checks backend behavior, Android compilation/lint/Kotlin regression tests, iOS simulator application compilation, and an Android emulator booking smoke test. Download APKs, simulator builds, and native screenshots from the Actions run artifacts. Local verification status is recorded in docs/VALIDATION.md.

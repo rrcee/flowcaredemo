@@ -8,10 +8,17 @@ targets:
     type: application
     platform: iOS
     sources: [FlowCareApp.swift]
+    preBuildScripts:
+      - name: Build Kotlin framework and synchronize resources
+        script: |
+          cd "$SRCROOT/.."
+          gradle :composeApp:embedAndSignAppleFrameworkForXcode
+        basedOnDependencyAnalysis: false
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.flowcare.demo
         GENERATE_INFOPLIST_FILE: YES
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
         INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking: YES
         FRAMEWORK_SEARCH_PATHS: "$(inherited) $(SRCROOT)/../composeApp/build/bin/iosSimulatorArm64/debugFramework"
         OTHER_LDFLAGS: "$(inherited) -framework FlowCare"
