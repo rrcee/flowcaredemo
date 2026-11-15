@@ -146,10 +146,10 @@ fun App(initialUrl: String) {
                     FilterChip(selected=doctorRole,onClick={doctorRole=true;page="Console"},label={Text("Doctor")})
                 }
                 Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                    TextButton(onClick={page=if(doctorRole) "Console" else "Welcome"}) { Text("Home") }
-                    if(page !in listOf("Welcome","Console")) TextButton(onClick={goBack()}) { Text("Back") }
-                    TextButton(onClick={page="Settings"}) { Text("Settings") }
-                    TextButton(onClick={dark=!dark}) { Text(if(dark) "Light" else "Dark") }
+                    TextButton(colors=ButtonDefaults.textButtonColors(contentColor=MaterialTheme.colorScheme.onSurface),onClick={page=if(doctorRole) "Console" else "Welcome"}) { Text("Home") }
+                    if(page !in listOf("Welcome","Console")) TextButton(colors=ButtonDefaults.textButtonColors(contentColor=MaterialTheme.colorScheme.onSurface),onClick={goBack()}) { Text("Back") }
+                    TextButton(colors=ButtonDefaults.textButtonColors(contentColor=MaterialTheme.colorScheme.onSurface),onClick={page="Settings"}) { Text("Settings") }
+                    TextButton(colors=ButtonDefaults.textButtonColors(contentColor=MaterialTheme.colorScheme.onSurface),onClick={dark=!dark}) { Text(if(dark) "Light" else "Dark") }
                 }
                 if(errorMessage.isNotBlank()) Text(errorMessage,color=colors.error)
                 if(notice.isNotBlank()) Text(notice,color=colors.secondary)
@@ -247,7 +247,7 @@ fun App(initialUrl: String) {
                         if(state.items("prescriptions").isEmpty()) Text("No prescriptions yet. Your doctor’s instructions will appear here after consultation.")
                         state.items("prescriptions").forEach { rx ->
                         Panel("Prescription · ${rx.s("booking")}",rx.s("text"))
-                        FlowRow { (1..5).forEach { stars -> TextButton(onClick={action("bookings/${rx.s("booking")}/review/$stars") {notice="Review saved"}},enabled=!busy) {Text("$stars / 5")} } }
+                        FlowRow { (1..5).forEach { stars -> TextButton(colors=ButtonDefaults.textButtonColors(contentColor=MaterialTheme.colorScheme.onSurface),onClick={action("bookings/${rx.s("booking")}/review/$stars") {notice="Review saved"}},enabled=!busy) {Text("$stars / 5")} } }
                     }
                     }
                     "EduMind" -> {
@@ -271,7 +271,7 @@ fun App(initialUrl: String) {
     }
 }
 @Composable private fun Nav(label:String,enabled:Boolean=true,click:()->Unit) {
-    OutlinedButton(onClick=click,enabled=enabled,shape=RoundedCornerShape(14.dp),border=BorderStroke(1.dp,MaterialTheme.colorScheme.outlineVariant),contentPadding=PaddingValues(horizontal=18.dp,vertical=15.dp),modifier=Modifier.fillMaxWidth().heightIn(min=52.dp)) {
+    OutlinedButton(onClick=click,enabled=enabled,colors=ButtonDefaults.outlinedButtonColors(contentColor=MaterialTheme.colorScheme.onSurface),shape=RoundedCornerShape(14.dp),border=BorderStroke(1.dp,MaterialTheme.colorScheme.outlineVariant),contentPadding=PaddingValues(horizontal=18.dp,vertical=15.dp),modifier=Modifier.fillMaxWidth().heightIn(min=52.dp)) {
         Text(label,modifier=Modifier.fillMaxWidth(),style=MaterialTheme.typography.titleSmall)
     }
 }

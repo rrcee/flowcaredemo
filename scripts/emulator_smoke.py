@@ -1,5 +1,7 @@
 """Run a synthetic booking against the backend and capture native Android screens."""
 import os
+import sys
+import traceback
 import re
 import subprocess
 import time
@@ -30,7 +32,16 @@ def top():
     for _ in range(3): adb('shell','input','swipe','500','400','500','1600','150')
 def down():adb('shell','input','swipe','500','1600','500','500','250')
 
-adb('shell','am','start','-n','com.flowcare.demo/.MainActivity')
+def capture_failure(kind,value,tb):
+    try:
+        screen('failure')
+        (out/'failure.xml').write_bytes(adb('exec-out','cat','/sdcard/flowcare-ui.xml'))
+        (out/'logcat.txt').write_bytes(adb('logcat','-d','-t','500'))
+    except Exception: pass
+    traceback.print_exception(kind,value,tb)
+sys.excepthook=capture_failure
+
+adb('shell','am','start','-n','com.flowcare.demo/com.flowcare.MainActivity')
 find('How can we help?')
 screen('01-welcome-light')
 tap('Dark');screen('02-welcome-dark')
