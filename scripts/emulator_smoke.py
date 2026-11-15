@@ -2,6 +2,8 @@
 import os
 import sys
 import traceback
+import atexit
+import urllib.request
 import re
 import subprocess
 import time
@@ -9,14 +11,25 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 out=Path('build/native-screenshots');out.mkdir(parents=True,exist_ok=True)
+server_log=open(out/'backend.log','wb')
+server=subprocess.Popen([sys.executable,'-m','uvicorn','app:app','--host','0.0.0.0','--port','8000'],cwd='backend',stdout=server_log,stderr=subprocess.STDOUT)
+atexit.register(server.terminate)
+for attempt in range(30):
+    try:
+        urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=2)
+        break
+    except Exception: time.sleep(1)
+else: raise RuntimeError('Backend did not start')
 def adb(*args):
     return subprocess.check_output(['adb',*args])
 def screen(name):
     time.sleep(.4)
     (out/(name+'.png')).write_bytes(adb('exec-out','screencap','-p'))
 def nodes():
-    adb('shell','uiautomator','dump','/sdcard/flowcare-ui.xml')
-    return list(ET.fromstring(adb('exec-out','cat','/sdcard/flowcare-ui.xml')).iter('node'))
+    adb('shell','uiautomator','dump','--compressed','/data/local/tmp/flowcare-ui.xml')
+    data=adb('exec-out','cat','/data/local/tmp/flowcare-ui.xml')
+    try: return list(ET.fromstring(data).iter('node'))
+    except ET.ParseError: return []
 def find(text,timeout=25):
     until=time.monotonic()+timeout
     while time.monotonic()<until:
@@ -35,7 +48,7 @@ def down():adb('shell','input','swipe','500','1600','500','500','250')
 def capture_failure(kind,value,tb):
     try:
         screen('failure')
-        (out/'failure.xml').write_bytes(adb('exec-out','cat','/sdcard/flowcare-ui.xml'))
+        (out/'failure.xml').write_bytes(adb('exec-out','cat','/data/local/tmp/flowcare-ui.xml'))
         (out/'logcat.txt').write_bytes(adb('logcat','-d','-t','500'))
     except Exception: pass
     traceback.print_exception(kind,value,tb)

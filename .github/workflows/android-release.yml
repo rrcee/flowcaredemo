@@ -1,0 +1,33 @@
+name: Publish Android APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/android-release.yml']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: FlowCare-Android-debug
+          run-id: 43697623763
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: dist
+      - name: Package verified Android build
+        run: |
+          mv dist/composeApp-debug.apk dist/FlowCare-v0.1.0-demo.apk
+          cd dist
+          sha256sum FlowCare-v0.1.0-demo.apk > SHA256SUMS.txt
+      - name: Publish APK and checksum
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release view v0.1.0-demo >/dev/null 2>&1 || gh release create v0.1.0-demo --target bbfc0f05524de8827ce6c1d60aa8b0aa85bd8aad --draft --prerelease --title 'FlowCare Android v0.1.0 demo' --notes-file docs/ANDROID_RELEASE.md
+          gh release upload v0.1.0-demo dist/FlowCare-v0.1.0-demo.apk dist/SHA256SUMS.txt --clobber
+          gh release edit v0.1.0-demo --draft=false --prerelease --notes-file docs/ANDROID_RELEASE.md

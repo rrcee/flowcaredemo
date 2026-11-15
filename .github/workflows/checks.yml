@@ -35,34 +35,6 @@ jobs:
           name: FlowCare-Android-debug
           path: composeApp/build/outputs/apk/debug/*.apk
           if-no-files-found: error
-  ios-framework:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-      - uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.11.1'
-      - run: gradle :composeApp:linkDebugFrameworkIosSimulatorArm64 --stacktrace
-      - name: Build iOS simulator application
-        run: |
-          command -v xcodegen || brew install xcodegen
-          cd iosApp
-          xcodegen generate
-          xcodebuild -project FlowCare.xcodeproj -scheme FlowCare -sdk iphonesimulator -configuration Debug -derivedDataPath build CODE_SIGNING_ALLOWED=NO ARCHS=arm64 ONLY_ACTIVE_ARCH=YES build
-      - uses: actions/upload-artifact@v4
-        with:
-          name: FlowCare-iOS-simulator-app
-          path: iosApp/build/Build/Products/Debug-iphonesimulator/*.app
-          if-no-files-found: error
-      - uses: actions/upload-artifact@v4
-        with:
-          name: FlowCare-iOS-simulator-framework
-          path: composeApp/build/bin/iosSimulatorArm64/debugFramework/
-          if-no-files-found: error
   android-emulator:
     needs: android
     runs-on: ubuntu-latest
@@ -94,7 +66,6 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: |
-            cd backend && uvicorn app:app --host 0.0.0.0 --port 8000 > /tmp/flowcare-api.log 2>&1 &
             adb install apk/composeApp-debug.apk
             python scripts/emulator_smoke.py
       - uses: actions/upload-artifact@v4
