@@ -1,94 +1,55 @@
-"""Run a synthetic booking against the backend and capture native Android screens."""
-import os
-import sys
-import traceback
-import atexit
-import urllib.request
-import re
-import subprocess
-import time
-import xml.etree.ElementTree as ET
+"""Prove the three-app journey offline on a single Android device."""
+import subprocess,time,re,sys,traceback,xml.etree.ElementTree as ET
 from pathlib import Path
-
 out=Path('build/native-screenshots');out.mkdir(parents=True,exist_ok=True)
-server_log=open(out/'backend.log','wb')
-server=subprocess.Popen([sys.executable,'-m','uvicorn','app:app','--host','0.0.0.0','--port','8000'],cwd='backend',stdout=server_log,stderr=subprocess.STDOUT)
-atexit.register(server.terminate)
-for attempt in range(30):
-    try:
-        urllib.request.urlopen('http://127.0.0.1:8000/health',timeout=2)
-        break
-    except Exception: time.sleep(1)
-else: raise RuntimeError('Backend did not start')
-def adb(*args):
-    return subprocess.check_output(['adb',*args])
+def adb(*args):return subprocess.check_output(['adb',*args])
 def screen(name):
-    time.sleep(.4)
-    (out/(name+'.png')).write_bytes(adb('exec-out','screencap','-p'))
+ time.sleep(.5);(out/(name+'.png')).write_bytes(adb('exec-out','screencap','-p'))
 def nodes():
-    adb('shell','uiautomator','dump','--compressed','/data/local/tmp/flowcare-ui.xml')
-    data=adb('exec-out','cat','/data/local/tmp/flowcare-ui.xml')
-    try: return list(ET.fromstring(data).iter('node'))
-    except ET.ParseError: return []
-def find(text,timeout=25):
-    until=time.monotonic()+timeout
-    while time.monotonic()<until:
-        for n in nodes():
-            if n.get('text')==text or n.get('content-desc')==text:return n
-        time.sleep(.5)
-    raise AssertionError(f'Could not find {text!r}')
-def tap_node(n):
-    x1,y1,x2,y2=map(int,re.findall(r'\d+',n.get('bounds','')))
-    adb('shell','input','tap',str((x1+x2)//2),str((y1+y2)//2))
-def tap(text):tap_node(find(text))
-def top():
-    for _ in range(3): adb('shell','input','swipe','500','400','500','1600','150')
-def down():adb('shell','input','swipe','500','1600','500','500','250')
-
-def capture_failure(kind,value,tb):
-    try:
-        screen('failure')
-        (out/'failure.xml').write_bytes(adb('exec-out','cat','/data/local/tmp/flowcare-ui.xml'))
-        (out/'logcat.txt').write_bytes(adb('logcat','-d','-t','500'))
-    except Exception: pass
-    traceback.print_exception(kind,value,tb)
-sys.excepthook=capture_failure
-
-adb('shell','am','start','-n','com.flowcare.demo/com.flowcare.MainActivity')
-find('How can we help?')
-screen('01-welcome-light')
-tap('Settings');tap('Use dark appearance');tap('Home');screen('02-welcome-dark')
-tap('Settings');tap('Use light appearance');tap('Home')
-tap('Book hospital visit');tap('Self');tap('Choose a doctor')
-find('Select Dr. Anya Sharma');screen('03-doctor-discovery')
-tap('Select Dr. Anya Sharma')
-# Focus the last text field (visit time); patient defaults to Self.
+ adb('shell','uiautomator','dump','--compressed','/data/local/tmp/flowcare-ui.xml')
+ try:return list(ET.fromstring(adb('exec-out','cat','/data/local/tmp/flowcare-ui.xml')).iter('node'))
+ except ET.ParseError:return []
+def down():adb('shell','input','swipe','500','1700','500','650','180')
+def find(text,timeout=40,scroll=False):
+ until=time.monotonic()+timeout;tries=0
+ while time.monotonic()<until:
+  for n in nodes():
+   if n.get('text')==text or n.get('content-desc')==text:return n
+  tries+=1
+  if scroll and tries%2==0:down()
+  time.sleep(.3)
+ raise AssertionError(f'Missing UI element: {text}')
+def tapnode(n):
+ x1,y1,x2,y2=map(int,re.findall(r'\d+',n.get('bounds','')));adb('shell','input','tap',str((x1+x2)//2),str((y1+y2)//2))
+def tap(text,scroll=False):tapnode(find(text,scroll=scroll))
+def launch(role,first=False):
+ adb('shell','am','start','-n',f'com.flowcare.demo.{role}/com.flowcare.MainActivity')
+ if first:tap('Use demo account',scroll=True)
+def fail(kind,value,tb):
+ try:
+  screen('failure');(out/'failure.xml').write_bytes(adb('exec-out','cat','/data/local/tmp/flowcare-ui.xml'));(out/'logcat.txt').write_bytes(adb('logcat','-d','-t','700'))
+ except Exception:pass
+ traceback.print_exception(kind,value,tb)
+sys.excepthook=fail
+# All functions below must work without network access.
+adb('shell','svc','wifi','disable');adb('shell','svc','data','disable')
+launch('hospital',True);find('Hospital overview');screen('01-hospital-overview')
+launch('patient',True);find('Hello, Maya');screen('02-patient-home')
+tap('Book an appointment',True);tap('Continue',True);tap('Choose appointment time',True);tap('Review appointment',True);screen('03-booking-review');tap('Confirm demo booking',True)
+find("You're booked");tap('View appointment',True);find('Check in');screen('04-patient-pass')
+# Hospital sees the patient booking without any server.
+launch('hospital');tap('Check-in');tap('Maya Mathew',True);tap('Check in',True);screen('05-hospital-checkin')
+launch('doctor',True);find("Today's queue");tap('Maya Mathew',True);tap('Call patient',True);find('Consultation');tap('Order blood test',True)
+# Scroll to the editable care-plan field if needed.
 fields=[n for n in nodes() if n.get('class')=='android.widget.EditText']
-assert len(fields)==2,'Expected patient name and visit-time fields'
-tap_node(fields[-1]);adb('shell','input','text','2030-11-15%s09:00')
-adb('shell','input','keyevent','KEYCODE_BACK')
-tap('Confirm appointment')
-find('Queue');screen('04-patient-queue')
-top();tap('Doctor')
-find('Console')
-find('Complete current / call next')
-tap('Complete current / call next')
-tap('#1001 · Self · active')
-tap('Order blood lab · ₹450')
-find('Lab bill sent to patient')
-fields=[n for n in nodes() if n.get('class')=='android.widget.EditText']
-if not fields:
-    down();fields=[n for n in nodes() if n.get('class')=='android.widget.EditText']
-assert fields,'Prescription field is missing'
-tap_node(fields[-1]);adb('shell','input','text','Synthetic%sinstructions')
-adb('shell','input','keyevent','KEYCODE_BACK')
-tap('Issue prescription');find('Prescription sent')
-screen('05-doctor-consultation')
-top();tap('Home');find('Console')
-# System Back from Settings should return to the doctor console.
-tap('Settings');find('Backend URL')
-adb('shell','input','keyevent','KEYCODE_BACK');find('Console')
-adb('shell','settings','put','system','font_scale','1.3')
-time.sleep(2);find('Console');screen('06-large-text')
-adb('shell','settings','put','system','font_scale','1.0')
-print('Native booking, role switching, theme switching and system Back passed.')
+if not fields:down();fields=[n for n in nodes() if n.get('class')=='android.widget.EditText']
+assert fields,'Care-plan field is missing'
+tapnode(fields[0]);adb('shell','input','text','Fictional%sdemo%scare%splan')
+adb('shell','input','keyevent','KEYCODE_BACK');tap('Share care instructions',True);screen('06-doctor-consultation');tap('Complete consultation',True)
+launch('patient');tap('Bills');find('Blood test',scroll=True);screen('07-patient-bills');tap('Pay ₹450 in demo',True)
+# Fulfillment sees the simulated payment.
+launch('hospital');tap('Orders');find('Blood test');screen('08-hospital-orders');tap('Mark Blood test ready',True)
+launch('patient');tap('Visits');tap('Maya Mathew',True);tap('View care instructions',True);find('Fictional demo care plan');screen('09-patient-aftercare')
+adb('shell','input','keyevent','KEYCODE_BACK');adb('shell','input','keyevent','KEYCODE_BACK');tap('Profile');find('Family members');screen('10-patient-profile')
+adb('shell','settings','put','system','font_scale','1.3');time.sleep(2);find('Family members',scroll=True);screen('11-large-text-profile');adb('shell','settings','put','system','font_scale','1.0')
+print('PASS: offline patient booking → hospital check-in → doctor consultation/lab/Rx → patient payment → hospital fulfillment → patient aftercare, profile and large text.')

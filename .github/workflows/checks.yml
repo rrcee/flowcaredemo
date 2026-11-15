@@ -6,15 +6,6 @@ concurrency:
   group: checks-${{ github.ref }}
   cancel-in-progress: false
 jobs:
-  backend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-      - run: pip install -r backend/requirements.txt
-      - run: cd backend && pytest -q
   android:
     runs-on: ubuntu-latest
     steps:
@@ -29,11 +20,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.11.1'
-      - run: gradle :composeApp:assembleDebug :composeApp:testDebugUnitTest :composeApp:lintDebug --stacktrace
+      - run: gradle :composeApp:assembleDebug :composeApp:testPatientDebugUnitTest :composeApp:testDoctorDebugUnitTest :composeApp:testHospitalDebugUnitTest :composeApp:lintPatientDebug :composeApp:lintDoctorDebug :composeApp:lintHospitalDebug --stacktrace
       - uses: actions/upload-artifact@v4
         with:
           name: FlowCare-Android-debug
-          path: composeApp/build/outputs/apk/debug/*.apk
+          path: composeApp/build/outputs/apk/**/debug/*.apk
           if-no-files-found: error
   android-emulator:
     needs: android
@@ -48,7 +39,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install -r backend/requirements.txt
       - uses: actions/download-artifact@v4
         with:
           name: FlowCare-Android-debug
@@ -66,7 +56,9 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: |
-            adb install apk/composeApp-debug.apk
+            find apk -path '*hospital*' -name '*.apk' -exec adb install {} \;
+            find apk -path '*patient*' -name '*.apk' -exec adb install {} \;
+            find apk -path '*doctor*' -name '*.apk' -exec adb install {} \;
             python scripts/emulator_smoke.py
       - uses: actions/upload-artifact@v4
         if: always()
