@@ -22,6 +22,9 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import io.ktor.client.*
@@ -36,15 +39,14 @@ import kotlinx.serialization.json.*
 private val json = Json { ignoreUnknownKeys = true }
 private fun JsonObject.s(key: String) = (this[key] as? JsonPrimitive)?.content ?: ""
 private fun JsonObject.items(key: String) = this[key]?.jsonArray?.map { it.jsonObject } ?: emptyList()
-private val Slate=Color(0xFF5B7C99)
-private val Sage=Color(0xFF426B5A)
-private val Rose=Color(0xFF994545)
-private val Sand=Color(0xFF846132)
-private val Lavender=Color(0xFF8A79AF)
+private val CareBlue=Color(0xFF2454C6)
+private val CareInk=Color(0xFF162E58)
+private val CareCream=Color(0xFFFFF8E8)
+private val CarePaper=Color(0xFFFFFDF5)
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun App(initialUrl: String) {
+fun App(initialUrl: String, onThemeChanged:(Boolean)->Unit={}) {
     var base by rememberSaveable { mutableStateOf(initialUrl) }
     var doctorRole by rememberSaveable { mutableStateOf(false) }
     var page by rememberSaveable { mutableStateOf("Welcome") }
@@ -71,7 +73,7 @@ fun App(initialUrl: String) {
     var previousBase by rememberSaveable { mutableStateOf(initialUrl) }
     var previousRole by rememberSaveable { mutableStateOf(false) }
     var actionJob by remember { mutableStateOf<Job?>(null) }
-    var allBills by remember { mutableStateOf(false) }
+    var allBills by rememberSaveable { mutableStateOf(false) }
     DisposableEffect(base,doctorRole) { onDispose { actionJob?.cancel(); busy=false } }
     DisposableEffect(Unit) { onDispose { client.close() } }
     val token=if(doctorRole) "doctor-demo" else "patient-demo"
@@ -122,19 +124,37 @@ fun App(initialUrl: String) {
         }
     }
     LaunchedEffect(page) { history="";notes="";chat="";reply="";errorMessage="";notice="" }
-    val colors=if(dark) darkColorScheme(primary=Color(0xFFADC7DF),onPrimary=Color(0xFF183247),secondary=Color(0xFFA7CDBA),tertiary=Color(0xFFC8B9E5),background=Color(0xFF1A1D24),surface=Color(0xFF242832),onBackground=Color(0xFFE6E4E0),onSurface=Color(0xFFE6E4E0)) else lightColorScheme(primary=Slate,onPrimary=Color.White,secondary=Sage,tertiary=Lavender,background=Color(0xFFF5F4F0),surface=Color.White,onSurface=Color(0xFF2B303A))
+    SideEffect { onThemeChanged(dark) }
+    val colors=if(dark) darkColorScheme(
+        primary=Color(0xFFABC5FF),onPrimary=Color(0xFF112956),
+        primaryContainer=Color(0xFF243F71),onPrimaryContainer=Color(0xFFFFF8E8),
+        secondary=Color(0xFFABC5FF),tertiary=Color(0xFFABC5FF),
+        background=Color(0xFF111D32),surface=Color(0xFF1B2B46),
+        surfaceVariant=Color(0xFF263B5E),onBackground=CareCream,onSurface=CareCream,
+        onSurfaceVariant=Color(0xFFD4DEF0),outline=Color(0xFFABC5FF),outlineVariant=Color(0xFF728AB4),error=Color(0xFFFFB4A8)
+    ) else lightColorScheme(
+        primary=CareBlue,onPrimary=Color.White,
+        primaryContainer=Color(0xFFE1EAFE),onPrimaryContainer=CareInk,
+        secondary=CareBlue,tertiary=CareBlue,
+        secondaryContainer=Color(0xFFE1EAFE),onSecondaryContainer=CareInk,
+        tertiaryContainer=Color(0xFFE1EAFE),onTertiaryContainer=CareInk,surfaceTint=CareBlue,
+        background=CareCream,surface=CarePaper,surfaceVariant=Color(0xFFF0EAD9),
+        onBackground=CareInk,onSurface=CareInk,onSurfaceVariant=Color(0xFF41516C),
+        outline=CareInk,outlineVariant=Color(0xFF8B98AA),error=Color(0xFF9D3030)
+    )
     val uiFont=FontFamily(Font(Res.font.jakarta))
     val dataFont=FontFamily(Font(Res.font.jetbrains))
     val defaultType=Typography()
     val type=Typography(
-        displayLarge=defaultType.displayLarge.copy(fontFamily=uiFont),
-        headlineLarge=defaultType.headlineLarge.copy(fontFamily=uiFont),
-        headlineMedium=defaultType.headlineMedium.copy(fontFamily=uiFont),
-        titleMedium=defaultType.titleMedium.copy(fontFamily=uiFont),
-        titleSmall=defaultType.titleSmall.copy(fontFamily=uiFont),
-        bodyLarge=defaultType.bodyLarge.copy(fontFamily=uiFont),
-        bodyMedium=defaultType.bodyMedium.copy(fontFamily=uiFont),
-        labelLarge=defaultType.labelLarge.copy(fontFamily=uiFont)
+        displayLarge=defaultType.displayLarge.copy(fontFamily=uiFont,fontSize=48.sp,lineHeight=56.sp,fontWeight=FontWeight.Bold),
+        headlineLarge=defaultType.headlineLarge.copy(fontFamily=uiFont,fontSize=30.sp,lineHeight=38.sp,fontWeight=FontWeight.Bold),
+        headlineMedium=defaultType.headlineMedium.copy(fontFamily=uiFont,fontSize=26.sp,lineHeight=34.sp,fontWeight=FontWeight.Bold),
+        titleMedium=defaultType.titleMedium.copy(fontFamily=uiFont,fontSize=20.sp,lineHeight=28.sp,fontWeight=FontWeight.SemiBold),
+        titleSmall=defaultType.titleSmall.copy(fontFamily=uiFont,fontSize=18.sp,lineHeight=26.sp,fontWeight=FontWeight.SemiBold),
+        bodyLarge=defaultType.bodyLarge.copy(fontFamily=uiFont,fontSize=18.sp,lineHeight=28.sp),
+        bodyMedium=defaultType.bodyMedium.copy(fontFamily=uiFont,fontSize=18.sp,lineHeight=28.sp),
+        bodySmall=defaultType.bodySmall.copy(fontFamily=uiFont,fontSize=16.sp,lineHeight=24.sp),
+        labelLarge=defaultType.labelLarge.copy(fontFamily=uiFont,fontSize=17.sp,lineHeight=24.sp,fontWeight=FontWeight.SemiBold)
     )
     val home=if(doctorRole) "Console" else "Welcome"
     val goBack={ page=previousPage(page,doctorRole) }
@@ -144,17 +164,15 @@ fun App(initialUrl: String) {
             Column(Modifier.safeDrawingPadding().imePadding().widthIn(max=600.dp).padding(horizontal=24.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(16.dp)) {
                 Spacer(Modifier.height(6.dp))
                 Text("FlowCare",style=MaterialTheme.typography.headlineLarge)
-                Text("Your hospital visit, in one place.",style=MaterialTheme.typography.bodyMedium)
-                Text(if(connected) "Connected · demo hospital" else "Offline · retrying connection. Check Settings.",style=MaterialTheme.typography.labelLarge,color=if(connected) colors.secondary else colors.onSurfaceVariant)
+                Text(if(connected) "Demo hospital · connected" else "Connecting… Check Settings if this continues.",style=MaterialTheme.typography.labelLarge,color=if(connected) colors.secondary else colors.onSurfaceVariant)
                 FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-                    FilterChip(selected=!doctorRole,onClick={doctorRole=false;page="Welcome"},label={Text("Patient / Family")})
-                    FilterChip(selected=doctorRole,onClick={doctorRole=true;page="Console"},label={Text("Doctor")})
+                    FilterChip(selected=!doctorRole,onClick={doctorRole=false;page="Welcome"},label={Text("Patient / Family")},modifier=Modifier.heightIn(min=56.dp))
+                    FilterChip(selected=doctorRole,onClick={doctorRole=true;page="Console"},label={Text("Doctor")},modifier=Modifier.heightIn(min=56.dp))
                 }
-                Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                     TextButton(colors=ButtonDefaults.textButtonColors(contentColor=MaterialTheme.colorScheme.onSurface),onClick={page=if(doctorRole) "Console" else "Welcome"}) { Text("Home") }
                     if(page !in listOf("Welcome","Console")) TextButton(colors=ButtonDefaults.textButtonColors(contentColor=MaterialTheme.colorScheme.onSurface),onClick={goBack()}) { Text("Back") }
                     TextButton(colors=ButtonDefaults.textButtonColors(contentColor=MaterialTheme.colorScheme.onSurface),onClick={page="Settings"}) { Text("Settings") }
-                    TextButton(colors=ButtonDefaults.textButtonColors(contentColor=MaterialTheme.colorScheme.onSurface),onClick={dark=!dark}) { Text(if(dark) "Light" else "Dark") }
                 }
                 if(errorMessage.isNotBlank()) Text(errorMessage,color=colors.error)
                 if(notice.isNotBlank()) Text(notice,color=colors.secondary)
@@ -162,34 +180,36 @@ fun App(initialUrl: String) {
                 Text(if(page=="Welcome") "How can we help?" else page,style=MaterialTheme.typography.headlineMedium,fontWeight=FontWeight.SemiBold,modifier=Modifier.semantics { heading() })
                 when(page) {
                     "Welcome" -> {
-                        Panel("Your care, connected","Book a visit, follow your queue, and manage family bills in one place.")
-                        Nav("Book hospital visit") { page="Family" }
+                        Text("Choose one option to get started.",style=MaterialTheme.typography.bodyLarge)
+                        Nav("Book hospital visit",primary=true) { page="Family" }
+                        Nav("My appointments & bills") { page="Appointments" }
+                        Spacer(Modifier.height(4.dp))
+                        Text("Other care options",style=MaterialTheme.typography.titleSmall)
                         Nav("Walk-in registration") { page="Walk-in" }
                         Nav("Mental health support") { page="EduMind" }
-                        Nav("My appointments & bills") { page="Appointments" }
                     }
                     "Family" -> {
                         Text("Choose who you are booking for")
                         listOf("Self","Parent","Spouse","Child").forEach { name -> Nav(name) { patient=name;page="Hospitals" } }
                         OutlinedTextField(patient,{patient=it},label={Text("Family member name")},modifier=Modifier.fillMaxWidth())
-                        Nav("Continue") { page="Hospitals" }
+                        Nav("Continue",primary=true) { page="Hospitals" }
                     }
                     "Hospitals" -> {
                         Panel("FlowCare Community Hospital","Demo partner · General medicine & psychiatry · location data simulated")
-                        Nav("Choose a doctor") { page="Doctors" }
+                        Nav("Choose a doctor",primary=true) { page="Doctors" }
                     }
                     "Doctors" -> {
                         if(state.items("doctors").isEmpty()) Text("Doctor availability is loading. If you are offline, check Settings.")
                         state.items("doctors").forEach { d ->
-                        Panel(d.s("name"),"${d.s("specialty")} · ${d.s("rating")} stars · ${d.s("years")} years · ${d.s("cases")} cases · Match ${d.s("score")}")
+                        Panel(d.s("name"),"${d.s("specialty")} · ${d.s("rating")} stars · ${d.s("years")} years")
                         Nav("Select ${d.s("name")}") { selectedDoctor=d.s("id");page="Slots" }
                     }
                     }
                     "Slots", "Walk-in" -> {
                         OutlinedTextField(patient,{patient=it},label={Text("Patient name")},modifier=Modifier.fillMaxWidth())
-                        OutlinedTextField(slot,{slot=it},label={Text("Visit date & time (YYYY-MM-DD HH:mm)")},modifier=Modifier.fillMaxWidth())
+                        OutlinedTextField(slot,{slot=it},label={Text("Visit date and time")},supportingText={Text("Use year-month-day and 24-hour time. Example: 2030-11-15 09:00")},modifier=Modifier.fillMaxWidth())
                         Text("Walk-in desk and scanner integration pending. Enter a visit time to register in this demo.")
-                        Nav("Confirm appointment",!busy && connected && patient.isNotBlank() && slot.isNotBlank()) {
+                        Nav("Confirm appointment",!busy && connected && patient.isNotBlank() && slot.isNotBlank(),primary=true) {
                             action("bookings",body("patient" to patient,"doctor" to selectedDoctor,"slot" to slot)) { selectedBooking=it.s("id");page="Queue" }
                         }
                     }
@@ -246,7 +266,7 @@ fun App(initialUrl: String) {
                             action("orders",buildJsonObject {put("booking",selectedBooking);put("department","Blood lab");put("amount",45000)}) {notice="Lab bill sent to patient"}
                         }
                         OutlinedTextField(notes,{notes=it},label={Text("Prescription · medication, dose, instructions")},minLines=4,modifier=Modifier.fillMaxWidth())
-                        Nav("Issue prescription",notes.isNotBlank() && !busy) {action("bookings/$selectedBooking/prescription",body("text" to notes)) {notice="Prescription sent";notes=""}}
+                        Nav("Issue prescription",notes.isNotBlank() && !busy,primary=true) {action("bookings/$selectedBooking/prescription",body("text" to notes)) {notice="Prescription sent";notes=""}}
                     }
                     "Prescriptions" -> {
                         if(state.items("prescriptions").isEmpty()) Text("No prescriptions yet. Your doctor’s instructions will appear here after consultation.")
@@ -264,6 +284,7 @@ fun App(initialUrl: String) {
                         Nav("Book psychiatry appointment") {selectedDoctor="vikram";page="Slots"}
                     }
                     "Settings" -> {
+                        Nav(if(dark) "Use light appearance" else "Use dark appearance") { dark=!dark }
                         Text("Use Android emulator 10.0.2.2, iOS simulator localhost, or your computer’s LAN address on a physical device. Synthetic data only.")
                         OutlinedTextField(base,{base=it.trimEnd('/')},label={Text("Backend URL")},modifier=Modifier.fillMaxWidth())
                         Nav("Reconnect") {scope.launch {try {refresh();notice="Connected"} catch(e:Exception) {errorMessage=e.message ?: "Connection failed"}}}
@@ -275,16 +296,31 @@ fun App(initialUrl: String) {
         }
     }
 }
-@Composable private fun Nav(label:String,enabled:Boolean=true,click:()->Unit) {
-    OutlinedButton(onClick=click,enabled=enabled,colors=ButtonDefaults.outlinedButtonColors(contentColor=MaterialTheme.colorScheme.onSurface),shape=RoundedCornerShape(14.dp),border=BorderStroke(1.dp,MaterialTheme.colorScheme.outlineVariant),contentPadding=PaddingValues(horizontal=18.dp,vertical=15.dp),modifier=Modifier.fillMaxWidth().heightIn(min=52.dp)) {
+@Composable private fun Nav(label:String,enabled:Boolean=true,primary:Boolean=false,click:()->Unit) {
+    val colors=MaterialTheme.colorScheme
+    val modifier=Modifier.fillMaxWidth().heightIn(min=64.dp).then(
+        if(primary && enabled) Modifier.drawBehind {
+            drawRoundRect(color=colors.onSurface,topLeft=Offset(3.dp.toPx(),4.dp.toPx()),cornerRadius=CornerRadius(20.dp.toPx()))
+        } else Modifier
+    )
+    Button(
+        onClick=click,enabled=enabled,shape=RoundedCornerShape(20.dp),
+        border=BorderStroke(2.dp,if(enabled) colors.onSurface else colors.outlineVariant),
+        colors=ButtonDefaults.buttonColors(
+            containerColor=if(primary) colors.primary else colors.surface,
+            contentColor=if(primary) colors.onPrimary else colors.onSurface,
+            disabledContainerColor=colors.surfaceVariant,disabledContentColor=colors.onSurfaceVariant
+        ),
+        contentPadding=PaddingValues(horizontal=20.dp,vertical=18.dp),modifier=modifier
+    ) {
         Text(label,modifier=Modifier.fillMaxWidth(),style=MaterialTheme.typography.titleSmall)
     }
 }
 @Composable private fun Panel(title:String,description:String) {
-    Surface(modifier=Modifier.fillMaxWidth(),shape=RoundedCornerShape(18.dp),color=MaterialTheme.colorScheme.surface,border=BorderStroke(1.dp,MaterialTheme.colorScheme.outlineVariant)) {
-        Column(Modifier.padding(20.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+    Surface(modifier=Modifier.fillMaxWidth(),shape=RoundedCornerShape(24.dp),color=MaterialTheme.colorScheme.surface,border=BorderStroke(2.dp,MaterialTheme.colorScheme.onSurface)) {
+        Column(Modifier.padding(22.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
             Text(title,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold)
-            Text(description,style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,lineHeight=22.sp)
+            Text(description,style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
