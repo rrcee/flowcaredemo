@@ -1,12 +1,13 @@
 """Synthetic-data demo. Bind to localhost; demo credentials are not production auth."""
 import asyncio
 import json
+from datetime import datetime
 import secrets
 import sqlite3
 import time
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Header, WebSocket, WebSocketDisconnect
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from cryptography.fernet import Fernet
 
 DB = sqlite3.connect("flowcare.db", check_same_thread=False)
@@ -70,18 +71,38 @@ async def broadcast():
 @app.get('/health')
 def health(): return {'status':'ok','mode':'synthetic demo'}
 @app.get('/api/state')
-def state(x_token: str=Header(default='')):
+async def state(x_token: str=Header(default='')):
     auth(x_token);return snapshot()
 class Booking(BaseModel):
     patient: str=Field(min_length=1,max_length=80)
     doctor: str
     slot: str=Field(min_length=1,max_length=80)
+
+    @field_validator('patient')
+    @classmethod
+    def patient_required(cls, value):
+        value=value.strip()
+        if not value: raise ValueError('Enter a patient name')
+        return value
+
+    @field_validator('slot')
+    @classmethod
+    def valid_slot(cls, value):
+        try: return datetime.strptime(value.strip(), '%Y-%m-%d %H:%M').strftime('%Y-%m-%d %H:%M')
+        except ValueError: raise ValueError('Use YYYY-MM-DD HH:mm for the visit time')
 class Order(BaseModel):
     booking: str
     department: str=Field(min_length=1,max_length=60)
     amount: int=Field(gt=0,le=10000000)
 class Text(BaseModel):
     text: str=Field(min_length=1,max_length=10000)
+
+    @field_validator('text')
+    @classmethod
+    def nonblank(cls, value):
+        value=value.strip()
+        if not value: raise ValueError('Enter some text')
+        return value
 @app.post('/api/bookings')
 async def book(req:Booking,x_token:str=Header(default='')):
     auth(x_token)
@@ -99,7 +120,10 @@ async def book(req:Booking,x_token:str=Header(default='')):
 async def cancel(bid:str,x_token:str=Header(default='')):
     auth(x_token); row=booking(bid)
     if row['status']!='waiting': raise HTTPException(409,'Only waiting appointments can be cancelled')
-    with DB: DB.execute("UPDATE bookings SET status='cancelled' WHERE id=?",(bid,))
+    with DB:
+        DB.execute("UPDATE bookings SET status='cancelled' WHERE id=?",(bid,))
+        DB.execute("DELETE FROM bills WHERE booking=? AND paid=0",(bid,))
+    VAULT.pop(bid,None)
     await broadcast();return {'ok':True}
 @app.post('/api/doctors/{did}/pause')
 async def pause(did:str,x_token:str=Header(default='')):
@@ -109,6 +133,7 @@ async def pause(did:str,x_token:str=Header(default='')):
 @app.post('/api/doctors/{did}/next')
 async def next_patient(did:str,x_token:str=Header(default='')):
     auth(x_token,True)
+    if did not in [d['id'] for d in DOCTORS]: raise HTTPException(404,'Doctor not found')
     if did in PAUSED: raise HTTPException(409,'Resume the queue first')
     async with LOCK:
         with DB:
@@ -118,7 +143,8 @@ async def next_patient(did:str,x_token:str=Header(default='')):
     await broadcast();return {'ok':True}
 @app.post('/api/orders')
 async def order(req:Order,x_token:str=Header(default='')):
-    auth(x_token,True);booking(req.booking)
+    auth(x_token,True)
+    if booking(req.booking)['status']!='active': raise HTTPException(409,'Call this patient before placing an order')
     with DB: DB.execute('INSERT INTO bills VALUES(?,?,?,?,0)',(secrets.token_hex(8),req.booking,req.department,req.amount))
     await broadcast();return {'ok':True}
 @app.post('/api/bills/{bid}/pay')
@@ -129,7 +155,8 @@ async def pay(bid:str,x_token:str=Header(default='')):
     await broadcast();return {'ok':True,'simulated':True}
 @app.post('/api/bookings/{bid}/prescription')
 async def prescribe(bid:str,req:Text,x_token:str=Header(default='')):
-    auth(x_token,True);booking(bid)
+    auth(x_token,True)
+    if booking(bid)['status']!='active': raise HTTPException(409,'Call this patient before prescribing')
     with DB: DB.execute('INSERT OR REPLACE INTO prescriptions VALUES(?,?)',(bid,req.text))
     await broadcast();return {'ok':True}
 @app.post('/api/bookings/{bid}/review/{stars}')
@@ -140,7 +167,9 @@ async def review(bid:str,stars:int,x_token:str=Header(default='')):
     await broadcast();return {'ok':True}
 @app.post('/api/records/{bid}')
 async def record(bid:str,req:Text,x_token:str=Header(default='')):
-    auth(x_token);booking(bid);purge()
+    auth(x_token)
+    if booking(bid)['status'] not in ('waiting','active'): raise HTTPException(409,'Appointment is no longer active')
+    purge()
     VAULT[bid]=(time.time()+1800,CIPHER.encrypt(req.text.encode()))
     return {'expires_at':VAULT[bid][0]}
 @app.post('/api/records/{bid}/consume')
@@ -162,10 +191,11 @@ async def ws(ws:WebSocket):
     await ws.accept()
     try:
         msg=await asyncio.wait_for(ws.receive_json(),5)
+        if not isinstance(msg,dict): raise HTTPException(400,'Expected an authentication object')
         auth(msg.get('token',''))
         CLIENTS.add(ws);await ws.send_json(snapshot())
         while True: await ws.receive_text()
-    except (WebSocketDisconnect,asyncio.TimeoutError,HTTPException): pass
+    except (WebSocketDisconnect,asyncio.TimeoutError,HTTPException,ValueError,TypeError): pass
     finally:
         CLIENTS.discard(ws)
         try: await ws.close()

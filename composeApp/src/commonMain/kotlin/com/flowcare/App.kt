@@ -1,6 +1,19 @@
 package com.flowcare
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
+import com.flowcare.resources.Res
+import com.flowcare.resources.jakarta
+import com.flowcare.resources.jetbrains
+import org.jetbrains.compose.resources.Font
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.websocket.WebSockets
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -20,14 +33,15 @@ import kotlinx.coroutines.*
 import kotlinx.serialization.json.*
 
 private val json = Json { ignoreUnknownKeys = true }
-private fun JsonObject.s(key: String) = this[key]?.jsonPrimitive?.content ?: ""
+private fun JsonObject.s(key: String) = (this[key] as? JsonPrimitive)?.content ?: ""
 private fun JsonObject.items(key: String) = this[key]?.jsonArray?.map { it.jsonObject } ?: emptyList()
 private val Slate=Color(0xFF5B7C99)
-private val Sage=Color(0xFF6E9887)
-private val Rose=Color(0xFFC47474)
-private val Sand=Color(0xFFC89D66)
+private val Sage=Color(0xFF426B5A)
+private val Rose=Color(0xFF994545)
+private val Sand=Color(0xFF846132)
 private val Lavender=Color(0xFF8A79AF)
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun App(initialUrl: String) {
     var base by remember { mutableStateOf(initialUrl) }
@@ -41,14 +55,21 @@ fun App(initialUrl: String) {
     var patient by remember { mutableStateOf("Self") }
     var selectedDoctor by remember { mutableStateOf("anya") }
     var selectedBooking by remember { mutableStateOf("") }
-    var slot by remember { mutableStateOf("2026-12-01 09:00") }
+    var slot by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var history by remember { mutableStateOf("") }
     var chat by remember { mutableStateOf("") }
     var reply by remember { mutableStateOf("") }
     var dark by remember { mutableStateOf(false) }
     val scope=rememberCoroutineScope()
-    val client=remember { HttpClient { install(WebSockets) } }
+    val client=remember { HttpClient {
+        install(WebSockets)
+        install(HttpTimeout) { requestTimeoutMillis=15000; connectTimeoutMillis=10000 }
+    } }
+    val currentConnection by rememberUpdatedState(base to doctorRole)
+    var actionJob by remember { mutableStateOf<Job?>(null) }
+    var allBills by remember { mutableStateOf(false) }
+    DisposableEffect(base,doctorRole) { onDispose { actionJob?.cancel(); busy=false } }
     DisposableEffect(Unit) { onDispose { client.close() } }
     val token=if(doctorRole) "doctor-demo" else "patient-demo"
     suspend fun refresh() {
@@ -59,21 +80,29 @@ fun App(initialUrl: String) {
     fun action(path: String, body: JsonObject?=null, done:(JsonObject)->Unit={}) {
         if(busy) return
         busy=true; errorMessage="";notice=""
-        scope.launch {
+        val connection=base to doctorRole
+        actionJob=scope.launch {
             try {
-                val response=client.post("$base/api/$path") {
+                val response=client.post("${connection.first}/api/$path") {
                     header("X-Token",token)
                     if(body!=null) { contentType(ContentType.Application.Json);setBody(body.toString()) }
                 }
                 val data=json.parseToJsonElement(response.bodyAsText()).jsonObject
-                if(!response.status.isSuccess()) error(data.s("detail").ifBlank { "Request failed" })
-                done(data);refresh()
-            } catch(e:Exception) { errorMessage=e.message ?: "Connection failed" }
+                if(!response.status.isSuccess()) error(apiError(data))
+                if(currentConnection==connection) {
+                    done(data)
+                    try { refresh() } catch(e:CancellationException) { throw e }
+                    catch(e:Exception) { errorMessage="Saved. Live updates are reconnecting; do not submit again." }
+                }
+            } catch(e:CancellationException) { throw e }
+            catch(e:Exception) { errorMessage=e.message ?: "Connection failed. Check your connection in Settings." }
             finally { busy=false }
         }
     }
     fun body(vararg pairs:Pair<String,String>)=buildJsonObject { pairs.forEach { put(it.first,it.second) } }
     LaunchedEffect(base,doctorRole) {
+        state=JsonObject(emptyMap());selectedBooking="";connected=false
+        errorMessage="";notice="";history="";notes="";reply="";chat=""
         while(isActive) {
             try {
                 refresh()
@@ -81,33 +110,51 @@ fun App(initialUrl: String) {
                     send(body("token" to token).toString());connected=true
                     for(frame in incoming) if(frame is Frame.Text) state=json.parseToJsonElement(frame.readText()).jsonObject
                 }
-            } catch(e:Exception) { connected=false }
+            } catch(e:CancellationException) { throw e }
+            catch(e:Exception) { connected=false }
             finally { connected=false }
             delay(3000)
         }
     }
-    LaunchedEffect(page) { history="";notes="";chat="";reply="" }
-    val colors=if(dark) darkColorScheme(primary=Slate,secondary=Sage,tertiary=Lavender,background=Color(0xFF1A1D24),surface=Color(0xFF242832)) else lightColorScheme(primary=Slate,secondary=Sage,tertiary=Lavender,background=Color(0xFFF5F4F0),surface=Color.White,onSurface=Color(0xFF2B303A))
-    MaterialTheme(colorScheme=colors) {
+    LaunchedEffect(page) { history="";notes="";chat="";reply="";errorMessage="";notice="" }
+    val colors=if(dark) darkColorScheme(primary=Color(0xFFADC7DF),onPrimary=Color(0xFF183247),secondary=Color(0xFFA7CDBA),tertiary=Color(0xFFC8B9E5),background=Color(0xFF1A1D24),surface=Color(0xFF242832),onBackground=Color(0xFFE6E4E0),onSurface=Color(0xFFE6E4E0)) else lightColorScheme(primary=Slate,onPrimary=Color.White,secondary=Sage,tertiary=Lavender,background=Color(0xFFF5F4F0),surface=Color.White,onSurface=Color(0xFF2B303A))
+    val uiFont=FontFamily(Font(Res.font.jakarta))
+    val dataFont=FontFamily(Font(Res.font.jetbrains))
+    val defaultType=Typography()
+    val type=Typography(
+        displayLarge=defaultType.displayLarge.copy(fontFamily=uiFont),
+        headlineLarge=defaultType.headlineLarge.copy(fontFamily=uiFont),
+        headlineMedium=defaultType.headlineMedium.copy(fontFamily=uiFont),
+        titleMedium=defaultType.titleMedium.copy(fontFamily=uiFont),
+        titleSmall=defaultType.titleSmall.copy(fontFamily=uiFont),
+        bodyLarge=defaultType.bodyLarge.copy(fontFamily=uiFont),
+        bodyMedium=defaultType.bodyMedium.copy(fontFamily=uiFont),
+        labelLarge=defaultType.labelLarge.copy(fontFamily=uiFont)
+    )
+    val home=if(doctorRole) "Console" else "Welcome"
+    val goBack={ page=previousPage(page,doctorRole) }
+    PlatformBackHandler(page!=home,goBack)
+    MaterialTheme(colorScheme=colors, typography=type, shapes=Shapes(small=RoundedCornerShape(12.dp),medium=RoundedCornerShape(18.dp),large=RoundedCornerShape(24.dp))) {
         Surface(Modifier.fillMaxSize(),color=colors.background) {
-            Column(Modifier.safeContentPadding().padding(horizontal=20.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(14.dp)) {
+            Column(Modifier.safeDrawingPadding().imePadding().widthIn(max=600.dp).padding(horizontal=24.dp).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(16.dp)) {
                 Spacer(Modifier.height(6.dp))
                 Text("FlowCare",style=MaterialTheme.typography.headlineLarge)
-                Text("Care, with room to breathe.",style=MaterialTheme.typography.bodyMedium)
-                Text(if(connected) "● Connected · synthetic demo" else "○ Connecting to hospital…",color=if(connected) Sage else Sand)
-                Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+                Text("Your hospital visit, in one place.",style=MaterialTheme.typography.bodyMedium)
+                Text(if(connected) "Connected · demo hospital" else "Offline · retrying connection. Check Settings.",style=MaterialTheme.typography.labelLarge,color=if(connected) colors.secondary else colors.onSurfaceVariant)
+                FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                     FilterChip(selected=!doctorRole,onClick={doctorRole=false;page="Welcome"},label={Text("Patient / Family")})
                     FilterChip(selected=doctorRole,onClick={doctorRole=true;page="Console"},label={Text("Doctor")})
                 }
                 Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
                     TextButton(onClick={page=if(doctorRole) "Console" else "Welcome"}) { Text("Home") }
+                    if(page !in listOf("Welcome","Console")) TextButton(onClick={goBack()}) { Text("Back") }
                     TextButton(onClick={page="Settings"}) { Text("Settings") }
                     TextButton(onClick={dark=!dark}) { Text(if(dark) "Light" else "Dark") }
                 }
-                if(errorMessage.isNotBlank()) Text(errorMessage,color=Rose)
-                if(notice.isNotBlank()) Text(notice,color=Sage)
+                if(errorMessage.isNotBlank()) Text(errorMessage,color=colors.error)
+                if(notice.isNotBlank()) Text(notice,color=colors.secondary)
                 if(busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-                Text(page,style=MaterialTheme.typography.headlineMedium)
+                Text(if(page=="Welcome") "How can we help?" else page,style=MaterialTheme.typography.headlineMedium,fontWeight=FontWeight.SemiBold,modifier=Modifier.semantics { heading() })
                 when(page) {
                     "Welcome" -> {
                         Panel("Your care, connected","Book a visit, follow your queue, and manage family bills in one place.")
@@ -126,41 +173,44 @@ fun App(initialUrl: String) {
                         Panel("FlowCare Community Hospital","Demo partner · General medicine & psychiatry · location data simulated")
                         Nav("Choose a doctor") { page="Doctors" }
                     }
-                    "Doctors" -> state.items("doctors").forEach { d ->
+                    "Doctors" -> {
+                        if(state.items("doctors").isEmpty()) Text("Doctor availability is loading. If you are offline, check Settings.")
+                        state.items("doctors").forEach { d ->
                         Panel(d.s("name"),"${d.s("specialty")} · ${d.s("rating")} stars · ${d.s("years")} years · ${d.s("cases")} cases · Match ${d.s("score")}")
                         Nav("Select ${d.s("name")}") { selectedDoctor=d.s("id");page="Slots" }
+                    }
                     }
                     "Slots", "Walk-in" -> {
                         OutlinedTextField(patient,{patient=it},label={Text("Patient name")},modifier=Modifier.fillMaxWidth())
                         OutlinedTextField(slot,{slot=it},label={Text("Visit date & time (YYYY-MM-DD HH:mm)")},modifier=Modifier.fillMaxWidth())
                         Text("Walk-in desk and scanner integration pending. Enter a visit time to register in this demo.")
-                        Nav("Confirm appointment",!busy) {
+                        Nav("Confirm appointment",!busy && connected && patient.isNotBlank() && slot.isNotBlank()) {
                             action("bookings",body("patient" to patient,"doctor" to selectedDoctor,"slot" to slot)) { selectedBooking=it.s("id");page="Queue" }
                         }
                     }
                     "Appointments" -> {
                         if(state.items("queue").isEmpty()) Text("No waiting appointments. Book your first visit.")
                         state.items("queue").forEach { q -> Nav("${q.s("patient")} · #${q.s("token")}") {selectedBooking=q.s("id");page="Queue"} }
-                        Nav("All bills") { page="Payments" }
+                        Nav("All bills") { allBills=true;page="Payments" }
                         Nav("Prescriptions & reviews") { page="Prescriptions" }
                     }
                     "Queue" -> {
                         val q=state.items("queue").find {it.s("id")==selectedBooking}
                         if(q==null) Text("This appointment has left the live queue. Check prescriptions for completed visits.") else {
-                            Text("#${q.s("token")}",style=MaterialTheme.typography.displayLarge,fontFamily=FontFamily.Monospace,color=Sage)
-                            Panel(q.s("patient"),"${q.s("ahead")} patients ahead · about ${q.s("wait")} minutes · ${q.s("status")}")
+                            Text("#${q.s("token")}",style=MaterialTheme.typography.displayLarge,fontFamily=dataFont,color=colors.secondary)
+                            Panel(q.s("patient"),"${q.s("ahead")} patients ahead · ${if(q.s("paused")=="true") "Wait estimate paused" else "about ${q.s("wait")} minutes"} · ${q.s("status")}")
                             if(q.s("paused")=="true") Panel("Doctor attending an emergency","Your wait estimate may change. We will update this screen.")
                             Panel("Cafe wait mode","Keep this app open for updates. Background push alerts are not connected in this demo.")
-                            Text("Appointment reference: $selectedBooking",fontFamily=FontFamily.Monospace)
+                            Text("Appointment reference: $selectedBooking",fontFamily=dataFont)
                             if(q.s("status")=="waiting") Nav("Cancel appointment") {action("bookings/$selectedBooking/cancel")}
                         }
-                        Nav("Department bills") {page="Payments"}
+                        Nav("Department bills") {allBills=false;page="Payments"}
                         Nav("Temporary records") {page="Records"}
                         Nav("Prescriptions") {page="Prescriptions"}
                     }
                     "Payments" -> {
                         Text("Sandbox payments · no money is charged")
-                        state.items("bills").filter {selectedBooking.isBlank() || it.s("booking")==selectedBooking}.forEach { bill ->
+                        state.items("bills").filter {allBills || it.s("booking")==selectedBooking}.forEach { bill ->
                             Panel(bill.s("department"),"₹${(bill.s("amount").toIntOrNull() ?: 0)/100.0} · ${if(bill.s("paid")=="1") "Paid" else "Pending"}")
                             if(bill.s("paid")=="0") Nav("Simulate payment",!busy) {action("bills/${bill.s("id")}/pay")}
                         }
@@ -184,7 +234,7 @@ fun App(initialUrl: String) {
                         }
                     }
                     "Consultation" -> {
-                        Text("Appointment $selectedBooking",fontFamily=FontFamily.Monospace)
+                        Text("Appointment $selectedBooking",fontFamily=dataFont)
                         Nav("Consume temporary history",!busy) {action("records/$selectedBooking/consume") {history=it.s("text")}}
                         if(history.isNotBlank()) Panel("Temporary history · consumed",history)
                         Nav("Order blood lab · ₹450",!busy) {
@@ -193,9 +243,12 @@ fun App(initialUrl: String) {
                         OutlinedTextField(notes,{notes=it},label={Text("Prescription · medication, dose, instructions")},minLines=4,modifier=Modifier.fillMaxWidth())
                         Nav("Issue prescription",notes.isNotBlank() && !busy) {action("bookings/$selectedBooking/prescription",body("text" to notes)) {notice="Prescription sent";notes=""}}
                     }
-                    "Prescriptions" -> state.items("prescriptions").forEach { rx ->
+                    "Prescriptions" -> {
+                        if(state.items("prescriptions").isEmpty()) Text("No prescriptions yet. Your doctor’s instructions will appear here after consultation.")
+                        state.items("prescriptions").forEach { rx ->
                         Panel("Prescription · ${rx.s("booking")}",rx.s("text"))
-                        Row { (1..5).forEach { stars -> TextButton(onClick={action("bookings/${rx.s("booking")}/review/$stars") {notice="Review saved"}},enabled=!busy) {Text("$stars★")} } }
+                        FlowRow { (1..5).forEach { stars -> TextButton(onClick={action("bookings/${rx.s("booking")}/review/$stars") {notice="Review saved"}},enabled=!busy) {Text("$stars / 5")} } }
+                    }
                     }
                     "EduMind" -> {
                         Panel("A moment of calm","Scripted grounding support. This demo does not provide clinical assessment or live crisis monitoring.")
@@ -218,8 +271,15 @@ fun App(initialUrl: String) {
     }
 }
 @Composable private fun Nav(label:String,enabled:Boolean=true,click:()->Unit) {
-    Button(onClick=click,enabled=enabled,modifier=Modifier.fillMaxWidth().heightIn(min=50.dp)) { Text(label) }
+    OutlinedButton(onClick=click,enabled=enabled,shape=RoundedCornerShape(14.dp),border=BorderStroke(1.dp,MaterialTheme.colorScheme.outlineVariant),contentPadding=PaddingValues(horizontal=18.dp,vertical=15.dp),modifier=Modifier.fillMaxWidth().heightIn(min=52.dp)) {
+        Text(label,modifier=Modifier.fillMaxWidth(),style=MaterialTheme.typography.titleSmall)
+    }
 }
 @Composable private fun Panel(title:String,description:String) {
-    Card(Modifier.fillMaxWidth()) {Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {Text(title,style=MaterialTheme.typography.titleMedium);Text(description)}}
+    Surface(modifier=Modifier.fillMaxWidth(),shape=RoundedCornerShape(18.dp),color=MaterialTheme.colorScheme.surface,border=BorderStroke(1.dp,MaterialTheme.colorScheme.outlineVariant)) {
+        Column(Modifier.padding(20.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+            Text(title,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold)
+            Text(description,style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant,lineHeight=22.sp)
+        }
+    }
 }

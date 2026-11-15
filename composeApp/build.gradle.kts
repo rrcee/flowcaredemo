@@ -16,10 +16,12 @@ kotlin {
             implementation(compose.foundation)
             implementation(compose.material3)
             implementation(compose.ui)
+            implementation(compose.components.resources)
             implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
             implementation("io.ktor:ktor-client-core:3.1.2")
             implementation("io.ktor:ktor-client-websockets:3.1.2")
         }
+        commonTest.dependencies { implementation(kotlin("test")) }
         androidMain.dependencies {
             implementation("androidx.activity:activity-compose:1.10.1")
             implementation("io.ktor:ktor-client-okhttp:3.1.2")
@@ -34,3 +36,5 @@ android {
     buildTypes { getByName("release") { isMinifyEnabled = false } }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
 }
+
+compose.resources { packageOfResClass = "com.flowcare.resources" }
