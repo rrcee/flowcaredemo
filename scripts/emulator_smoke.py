@@ -41,6 +41,14 @@ sys.excepthook=fail
 adb('shell','svc','wifi','disable');adb('shell','svc','data','disable')
 launch('hospital',True);find('Hospital overview');screen('01-hospital-overview')
 launch('patient',True);find('Hello, Maya');screen('02-patient-home')
+tap('Search doctors or departments')
+fields=[n for n in nodes() if n.get('class')=='android.widget.EditText']
+assert fields,'Care-search input is missing'
+tapnode(fields[0]);adb('shell','input','text','heart');adb('shell','input','keyevent','KEYCODE_BACK')
+tap('Dr. Neha Joseph',True);find('Book Neha',scroll=True);screen('02a-doctor-profile')
+adb('shell','input','keyevent','KEYCODE_BACK');find('Find the care you need');adb('shell','input','keyevent','KEYCODE_BACK');find('Hello, Maya')
+tap('See all',True);tap('Heart care',True);find('Care at this clinic',scroll=True);screen('02b-department-detail')
+adb('shell','input','keyevent','KEYCODE_BACK');adb('shell','input','keyevent','KEYCODE_BACK');find('Hello, Maya')
 tap('Book an appointment',True);tap('Continue',True);tap('Choose appointment time',True);tap('Review appointment',True);screen('03-booking-review');tap('Confirm demo booking',True)
 find("You're booked");tap('View appointment',True);find('Check in');screen('04-patient-pass')
 # Hospital sees the patient booking without any server.

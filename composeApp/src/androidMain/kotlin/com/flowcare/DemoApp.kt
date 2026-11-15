@@ -8,6 +8,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -27,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -78,9 +80,25 @@ private data class Destination(val label:String,val icon:ImageVector)
  var familyName by remember {mutableStateOf("")}
  var familyRelation by remember {mutableStateOf("Family")}
  var familyAge by remember {mutableStateOf("")}
- var carePlan by remember {mutableStateOf("")}
+ var carePlan by remember(selected) {mutableStateOf("")}
+ var careQuery by rememberSaveable {mutableStateOf("")}
+ var careFilter by rememberSaveable {mutableStateOf("All")}
+ var browseDepartment by rememberSaveable {mutableStateOf("general")}
+ var browseDoctor by rememberSaveable {mutableStateOf("anya")}
+ var departmentParent by rememberSaveable {mutableStateOf("")}
+ var doctorParent by rememberSaveable {mutableStateOf("doctors")}
+ var doctorListParent by rememberSaveable {mutableStateOf("")}
+ var patientSearch by rememberSaveable {mutableStateOf("")}
+ var clinicianId by rememberSaveable {mutableStateOf(prefs.getString("clinician","anya") ?: "anya")}
+ val clinician=CareCatalog.doctor(clinicianId)
+ fun pausedFor(name:String)=data.optJSONObject("pausedDoctors")?.optBoolean(name) ?: data.optBoolean("paused")
+ fun openDepartment(d:CareDepartment,parent:String=""){browseDepartment=d.id;departmentParent=parent;page="department"}
+ fun openDoctor(d:CareDoctor,parent:String="doctors"){browseDoctor=d.id;doctorParent=parent;page="doctor-detail"}
+ fun back(){if(page.isNotEmpty())page=when(page){"book-doctor"->"book-hospital";"book-time"->"book-doctor";"book-review"->"book-time";"queue","prescription","consultation"->"visit";"doctor-detail"->doctorParent;"department"->departmentParent;"doctors"->doctorListParent;else->""}else tab=0}
  var dark by rememberSaveable {mutableStateOf(prefs.getBoolean("dark",false))}
  val snack=remember {SnackbarHostState()};val scope=rememberCoroutineScope()
+ val listState=rememberLazyListState()
+ LaunchedEffect(page,tab,patientId,clinicianId){if(logged)listState.scrollToItem(0)}
  fun notify(message:String){scope.launch{snack.showSnackbar(message)}}
  fun act(e:JSONObject){data=store.mutate(e);notify(data.optString("notice"))}
  fun signIn(){logged=true;password="";loginError="";prefs.edit().putBoolean("logged",true).putString("email",email).apply()}
@@ -90,7 +108,8 @@ private data class Destination(val label:String,val icon:ImageVector)
   onDispose {context.contentResolver.unregisterContentObserver(observer)}
  }
  SideEffect{onThemeChanged(dark)}
- BackHandler(logged&&(page.isNotEmpty()||tab!=0)){if(page.isNotEmpty())page=when(page){"book-doctor"->"book-hospital";"book-time"->"book-doctor";"book-review"->"book-time";"queue","prescription","consultation"->"visit";else->""}else tab=0}
+ BackHandler(!logged&&signup){signup=false;loginError=""}
+ BackHandler(logged&&(page.isNotEmpty()||tab!=0)){back()}
  val colors=if(dark) darkColorScheme(primary=Color(0xFFABC5FF),onPrimary=Ink,background=Color(0xFF111D32),surface=Color(0xFF1B2B46),onSurface=Cream,onBackground=Cream,onSurfaceVariant=Color(0xFFD5DFEF),secondaryContainer=Color(0xFF2D4777),onSecondaryContainer=Cream,outline=Color(0xFFABC5FF),outlineVariant=Color(0xFF6D83AC)) else lightColorScheme(primary=Blue,onPrimary=Color.White,background=Cream,surface=Paper,onSurface=Ink,onBackground=Ink,onSurfaceVariant=Color(0xFF41516C),secondaryContainer=Color(0xFFE1EAFE),onSecondaryContainer=Ink,outline=Ink,outlineVariant=Color(0xFFA2ADC0),surfaceTint=Blue)
  val font=FontFamily(Font(Res.font.jakarta))
  val type=Typography(bodyLarge=Typography().bodyLarge.copy(fontFamily=font,fontSize=18.sp,lineHeight=28.sp),bodyMedium=Typography().bodyMedium.copy(fontFamily=font,fontSize=17.sp,lineHeight=26.sp),titleLarge=Typography().titleLarge.copy(fontFamily=font,fontSize=24.sp,lineHeight=32.sp,fontWeight=FontWeight.Bold),titleMedium=Typography().titleMedium.copy(fontFamily=font,fontSize=19.sp,lineHeight=27.sp,fontWeight=FontWeight.SemiBold),titleSmall=Typography().titleSmall.copy(fontFamily=font,fontSize=17.sp,lineHeight=25.sp,fontWeight=FontWeight.SemiBold),headlineMedium=Typography().headlineMedium.copy(fontFamily=font,fontSize=28.sp,lineHeight=36.sp,fontWeight=FontWeight.Bold),labelLarge=Typography().labelLarge.copy(fontFamily=font,fontSize=16.sp,lineHeight=24.sp))
@@ -99,6 +118,11 @@ private data class Destination(val label:String,val icon:ImageVector)
  val patient=patients.find{it.optString("id")==patientId} ?: patients.first()
  val visits=data.rows("appointments")
  val myVisits=visits.filter{it.optString("patient")==patientId}
+ val assignedVisits=if(role=="doctor")visits.filter{it.optString("doctor")==clinician.name} else visits
+ val selectedDoctor=CareCatalog.doctors.firstOrNull{it.name==doctor} ?: CareCatalog.doctors.first()
+ val catalogDepartment=CareCatalog.department(browseDepartment)
+ val catalogDoctor=CareCatalog.doctor(browseDoctor)
+ val assignedIds=assignedVisits.map{it.optString("id")}
  val visit=visits.find{it.optString("id")==selected}
  val current=myVisits.firstOrNull{it.optString("status") !in listOf("complete","cancelled")}
  val appName=when(role){"doctor"->"FlowCare Doctor";"hospital"->"St. Mathew Hospital";else->"FlowCare"}
@@ -122,7 +146,7 @@ private data class Destination(val label:String,val icon:ImageVector)
    }
   } else Scaffold(
    containerColor=colors.background,
-   topBar={TopAppBar(title={Text(if(page.isBlank())appName else when(page){"book-hospital"->"Choose your care";"book-doctor"->"Choose a doctor";"book-time"->"Choose a time";"book-review"->"Review your visit";"visit"->"Visit details";"queue"->"Live queue";"family"->"Family members";"add-family"->"Add family member";"consultation"->"Consultation";"prescription"->"Care instructions";"success"->"Booking confirmed";"help"->"Help & support";else->"Settings"},style=type.titleMedium)},navigationIcon={if(page.isNotBlank())IconButton(onClick={page=when(page){"book-doctor"->"book-hospital";"book-time"->"book-doctor";"book-review"->"book-time";"queue","prescription","consultation"->"visit";else->""}}){Icon(Icons.AutoMirrored.Filled.ArrowBack,"Back")}},actions={
+   topBar={TopAppBar(title={Text(if(page.isBlank())appName else when(page){"book-hospital"->"Choose your care";"book-doctor"->"Choose a doctor";"book-time"->"Choose a time";"book-review"->"Review your visit";"visit"->"Visit details";"queue"->"Live queue";"family"->"Family members";"add-family"->"Add family member";"consultation"->"Consultation";"prescription"->"Care instructions";"success"->"Booking confirmed";"help"->"Help & support";"search"->"Find your care";"departments"->"Care departments";"department"->catalogDepartment.name;"doctors"->"Our doctors";"doctor-detail"->"Doctor profile";"clinician-switch"->"Demo clinician";else->"Settings"},style=type.titleMedium,maxLines=1,overflow=TextOverflow.Ellipsis)},navigationIcon={if(page.isNotBlank())IconButton(onClick={back()}){Icon(Icons.AutoMirrored.Filled.ArrowBack,"Back")}},actions={
      IconButton(onClick={notify(data.optString("notice","No new updates"))}){Icon(Icons.Default.NotificationsNone,"Notifications")}
      Box {IconButton(onClick={menu=true}){Icon(Icons.Default.MoreVert,"More options")};DropdownMenu(menu,{menu=false}){
       DropdownMenuItem(text={Text("Settings")},onClick={menu=false;page="settings"})
@@ -130,18 +154,19 @@ private data class Destination(val label:String,val icon:ImageVector)
       DropdownMenuItem(text={Text("Sign out")},onClick={menu=false;logged=false;page="";tab=0;prefs.edit().putBoolean("logged",false).apply()})
      }}
    },colors=TopAppBarDefaults.topAppBarColors(containerColor=colors.background))},
-   bottomBar={if(page.isBlank())NavigationBar(containerColor=colors.surface,tonalElevation=0.dp){destinations.forEachIndexed{i,d->NavigationBarItem(selected=tab==i,onClick={tab=i},icon={Icon(d.icon,d.label)},label={Text(d.label)},alwaysShowLabel=true)}}},
+   bottomBar={if(page.isBlank())NavigationBar(containerColor=colors.surface,tonalElevation=0.dp){destinations.forEachIndexed{i,d->NavigationBarItem(selected=tab==i,onClick={tab=i},icon={Icon(d.icon,null)},label={Text(d.label)},alwaysShowLabel=true)}}},
    snackbarHost={SnackbarHost(snack)}
   ){padding->
-   LazyColumn(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding(),contentPadding=PaddingValues(22.dp),verticalArrangement=Arrangement.spacedBy(18.dp)){
+   LazyColumn(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding(),state=listState,contentPadding=PaddingValues(22.dp),verticalArrangement=Arrangement.spacedBy(18.dp)){
     item {Column(verticalArrangement=Arrangement.spacedBy(18.dp)){
      if(page.isBlank()) {
       when {
        tab==3 -> {
         Image(painterResource(R.drawable.ic_launcher),contentDescription=null,modifier=Modifier.size(72.dp))
-        Heading(when(role){"doctor"->"Dr. Anya Sharma";"hospital"->"Hospital front desk";else->prefs.getString("name",null) ?: patient.optString("name")})
+        Heading(when(role){"doctor"->clinician.name;"hospital"->"Hospital front desk";else->prefs.getString("name",null) ?: patient.optString("name")})
         Text(prefs.getString("email",email) ?: email)
         Info("St. Mathew Hospital","Fictional hospital · offline demo")
+        if(role=="doctor")MenuRow("Demo clinician",clinician.specialty,Icons.Default.Badge){page="clinician-switch"}
         if(role=="patient")MenuRow("Family members","Manage who you book and pay for",Icons.Default.People){page="family"}
         MenuRow("Settings","Appearance and demo data",Icons.Default.Settings){page="settings"}
         MenuRow("Help & support","Understand the offline demo",Icons.Default.HelpOutline){page="help"}
@@ -149,14 +174,17 @@ private data class Destination(val label:String,val icon:ImageVector)
         Action("Sign out"){logged=false;page="";tab=0;prefs.edit().putBoolean("logged",false).apply()}
        }
        role=="patient" && tab==0 -> {
-        Text("ST. MATHEW HOSPITAL",style=type.labelLarge,color=colors.primary)
         Heading("Hello, ${patient.optString("name").substringBefore(' ')}")
-        MenuRow("For ${patient.optString("name")}","${patient.optString("relation")} · change patient",Icons.Default.Person){page="family"}
-        if(current==null){Info("Your next visit starts here","Book a doctor, keep track of your turn, and manage your visit in one place.");Action("Book an appointment",primary=true){page="book-hospital"}}
-        else {Info(if(current.optString("status")=="active")"The doctor is ready" else "Your next visit","${current.optString("doctor")}\n${current.optString("date")} · ${current.optString("time")}");Action(if(current.optString("status")=="confirmed")"View appointment" else "View live queue",primary=true){selected=current.optString("id");page=if(current.optString("status")=="confirmed")"visit" else "queue"}}
-        Heading("Your care",small=true)
-        MenuRow("My appointments","Upcoming and previous visits",Icons.Default.CalendarMonth){tab=1}
-        MenuRow("Bills & receipts","See what is paid or pending",Icons.Default.ReceiptLong){tab=2}
+        Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){
+         Row(Modifier.weight(1f),horizontalArrangement=Arrangement.spacedBy(6.dp),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.LocationOn,null,tint=colors.primary,modifier=Modifier.size(18.dp));Text("St. Mathew Hospital",style=type.bodySmall)}
+         TextButton(onClick={page="family"}){Text("Change patient")}
+        }
+        CareSearchEntry {careQuery="";careFilter="All";page="search"}
+        VisitHero(current,onBook={page="book-hospital"},onVisit={selected=current?.optString("id") ?: "";page=if(current?.optString("status")=="confirmed")"visit" else "queue"})
+        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Text("Care departments",style=type.titleMedium,modifier=Modifier.weight(1f));TextButton(onClick={page="departments"}){Text("See all")}}
+        DepartmentTiles(CareCatalog.departments.take(4)){openDepartment(it)}
+        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Text("Meet your doctors",style=type.titleMedium,modifier=Modifier.weight(1f));TextButton(onClick={browseDepartment="all";doctorListParent="";page="doctors"}){Text("View all")}}
+        CareCatalog.doctors.take(2).forEach{d->DoctorPreview(d){openDoctor(d,"")}}
         MenuRow("A moment of calm","An offline grounding exercise",Icons.Default.Spa){page="calm"}
        }
        role=="patient" && tab==1 -> {
@@ -177,17 +205,19 @@ private data class Destination(val label:String,val icon:ImageVector)
        }
        role=="doctor" && tab==0 -> {
         Heading("Today's queue")
-        Text("Dr. Anya Sharma · General medicine")
-        Info(if(data.optBoolean("paused"))"Queue paused" else "Ready to see patients","${visits.count{it.optString("status")=="waiting"}} waiting · ${visits.count{it.optString("status")=="active"}} in consultation")
-        Action(if(data.optBoolean("paused"))"Resume queue" else "Pause for an emergency"){act(event("pause"))}
-        val queue=visits.filter{it.optString("status") in listOf("waiting","active")}
-        if(queue.isEmpty())Info("No patients waiting","Book and check in from the Patient or Hospital app on this device. Visits update here automatically.")
+        Text("${clinician.name} · ${clinician.specialty}")
+        Info(if(pausedFor(clinician.name))"Queue paused" else "Ready to see patients","${assignedVisits.count{it.optString("status")=="waiting"}} waiting · ${assignedVisits.count{it.optString("status")=="active"}} in consultation")
+        Action(if(pausedFor(clinician.name))"Resume queue" else "Pause for an emergency"){act(event("pause","doctor" to clinician.name))}
+        val queue=assignedVisits.filter{it.optString("status") in listOf("waiting","active")}
+        if(queue.isEmpty())Info("No patients waiting","Visits for ${clinician.name} appear here. Choose another demo clinician from Profile to view their queue.")
         queue.forEach{v->VisitCard(v){selected=v.optString("id");page="visit"}}
        }
        role=="doctor" && tab==1 -> {
         Heading("Patients")
-        if(visits.isEmpty())Text("No patients have booked yet.")
-        visits.reversed().forEach{v->VisitCard(v){selected=v.optString("id");page="visit"}}
+        OutlinedTextField(patientSearch,{patientSearch=it},label={Text("Search patient or token")},leadingIcon={Icon(Icons.Default.Search,null)},singleLine=true,modifier=Modifier.fillMaxWidth())
+        val results=assignedVisits.filter{patientSearch.isBlank()||it.optString("name").contains(patientSearch,true)||it.optInt("token").toString().contains(patientSearch)}
+        if(results.isEmpty())Text("No matching patients for this demo clinician.")
+        results.reversed().forEach{v->VisitCard(v){selected=v.optString("id");page="visit"}}
        }
        role=="hospital" && tab==0 -> {
         Heading("Hospital overview")
@@ -202,29 +232,85 @@ private data class Destination(val label:String,val icon:ImageVector)
        role=="hospital" && tab==1 -> {
         Heading("Patient check-in")
         Text("Select a confirmed visit and verify its token with the patient's pass.")
-        val pending=visits.filter{it.optString("status")=="confirmed"}
+        OutlinedTextField(patientSearch,{patientSearch=it},label={Text("Search patient or token")},leadingIcon={Icon(Icons.Default.Search,null)},singleLine=true,modifier=Modifier.fillMaxWidth())
+        val pending=visits.filter{it.optString("status")=="confirmed"&&(patientSearch.isBlank()||it.optString("name").contains(patientSearch,true)||it.optInt("token").toString().contains(patientSearch))}
         if(pending.isEmpty())Info("No arrivals to check in","Confirmed bookings appear here automatically when all three apps are installed on the same device.")
         pending.forEach{v->VisitCard(v){selected=v.optString("id");page="visit"}}
        }
        else -> {
         Heading(if(role=="hospital")"Department orders" else "Patient orders")
-        val bills=data.rows("bills").filter{it.optString("department") !in listOf("Registration","Consultation")}
+        val bills=data.rows("bills").filter{it.optString("department") !in listOf("Registration","Consultation")&&(role!="doctor"||it.optString("visit") in assignedIds)}
         if(bills.isEmpty())Info("No department orders","Lab and pharmacy requests appear here after a doctor's order.")
         bills.forEach{b->Info(b.optString("department"),"₹${b.optInt("amount")} · ${if(b.optBoolean("paid"))"Paid" else "Payment pending"}\n${if(b.optBoolean("ready"))"Ready for collection" else "Being prepared"}");if(role=="hospital"&&!b.optBoolean("ready"))Action("Mark ${b.optString("department")} ready"){act(event("ready","id" to b.optString("id")))}}
        }
       }
      } else when(page){
+      "search" -> {
+       Heading("Find the care you need")
+       OutlinedTextField(careQuery,{careQuery=it},label={Text("Search doctors or departments")},leadingIcon={Icon(Icons.Default.Search,null)},trailingIcon={if(careQuery.isNotEmpty())IconButton(onClick={careQuery=""}){Icon(Icons.Default.Close,"Clear search")}},singleLine=true,modifier=Modifier.fillMaxWidth())
+       FlowRow(horizontalArrangement=Arrangement.spacedBy(10.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){listOf("All","Departments","Doctors").forEach{filter->FilterChip(selected=careFilter==filter,onClick={careFilter=filter},label={Text(filter)},modifier=Modifier.heightIn(min=52.dp))}}
+       val departmentResults=if(careFilter=="Doctors")emptyList() else CareCatalog.searchDepartments(careQuery)
+       val doctorResults=if(careFilter=="Departments")emptyList() else CareCatalog.searchDoctors(careQuery)
+       if(departmentResults.isEmpty()&&doctorResults.isEmpty())Info("No matches found","Try a department such as heart care, or a doctor's name.")
+       if(departmentResults.isNotEmpty()){Heading("Departments",small=true);departmentResults.forEach{d->MenuRow(d.name,d.specialty,departmentIcon(d.id)){openDepartment(d,"search")}}}
+       if(doctorResults.isNotEmpty()){Heading("Doctors",small=true);doctorResults.forEach{d->DoctorPreview(d){openDoctor(d,"search")}}}
+      }
+      "departments" -> {
+       Heading("Care, by department")
+       Text("Choose a clinic to see its services and fictional demo doctors.")
+       DepartmentTiles(CareCatalog.departments){openDepartment(it,"departments")}
+      }
+      "department" -> {
+       Surface(shape=RoundedCornerShape(24.dp),color=colors.secondaryContainer,modifier=Modifier.fillMaxWidth()){
+        Column(Modifier.padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)){Icon(departmentIcon(catalogDepartment.id),null,tint=colors.primary,modifier=Modifier.size(56.dp));Text(catalogDepartment.name,style=type.headlineMedium);Text(catalogDepartment.specialty,style=type.bodyMedium)}
+       }
+       Text(catalogDepartment.description)
+       Heading("Care at this clinic",small=true)
+       catalogDepartment.services.forEach{service->Row(horizontalArrangement=Arrangement.spacedBy(12.dp),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.CheckCircle,null,tint=colors.primary,modifier=Modifier.size(20.dp));Text(service,modifier=Modifier.weight(1f))}}
+       Heading("Meet the team",small=true)
+       CareCatalog.doctors.filter{it.departmentId==catalogDepartment.id}.forEach{d->DoctorPreview(d){openDoctor(d,"department")}}
+       Action("View ${catalogDepartment.name.lowercase()} doctors",primary=true){browseDepartment=catalogDepartment.id;doctorListParent="department";page="doctors"}
+       if(catalogDepartment.id=="mind")Action("Try a grounding exercise"){page="calm"}
+       Text("Fictional department and clinician profiles for the offline demo.",style=type.bodySmall)
+      }
+      "doctors" -> {
+       Heading("Find your doctor")
+       LazyRow(horizontalArrangement=Arrangement.spacedBy(10.dp)){
+        item{FilterChip(selected=browseDepartment=="all",onClick={browseDepartment="all"},label={Text("All doctors")},modifier=Modifier.heightIn(min=52.dp))}
+        items(CareCatalog.departments.size){i->val d=CareCatalog.departments[i];FilterChip(selected=browseDepartment==d.id,onClick={browseDepartment=d.id},label={Text(d.name)},modifier=Modifier.heightIn(min=52.dp))}
+       }
+       CareCatalog.doctors.filter{browseDepartment=="all"||it.departmentId==browseDepartment}.forEach{d->DoctorPreview(d){openDoctor(d)}}
+      }
+      "doctor-detail" -> {
+       Surface(shape=RoundedCornerShape(26.dp),color=colors.secondaryContainer,modifier=Modifier.fillMaxWidth()){
+        Column(Modifier.padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp),horizontalAlignment=Alignment.CenterHorizontally){
+         Surface(shape=RoundedCornerShape(26.dp),color=colors.primary){Box(Modifier.size(96.dp),contentAlignment=Alignment.Center){Text(catalogDoctor.initials,color=colors.onPrimary,style=type.headlineMedium)}}
+         Text(catalogDoctor.name,style=type.titleLarge);Text(catalogDoctor.specialty,style=type.bodyLarge)
+        }
+       }
+       Info("About this demo clinician","${catalogDoctor.years} years of sample experience\nSt. Mathew Hospital · ${CareCatalog.department(catalogDoctor.departmentId).name}")
+       Info("Consultation fee","₹${catalogDoctor.fee} + ₹100 registration\nDemo charges only; no real payment is processed.")
+       Action("Book ${catalogDoctor.name.removePrefix("Dr. ").substringBefore(' ')}",primary=true){doctor=catalogDoctor.name;department=catalogDoctor.specialty;page="book-hospital"}
+       Text("All clinicians are fictional. Initials identify demo profiles; they are not verified medical providers.",style=type.bodySmall)
+      }
+      "clinician-switch" -> {
+       Heading("Choose the demo clinician")
+       Text("The Doctor app shows only this clinician's patients and orders.")
+       CareCatalog.doctors.forEach{d->DoctorPreview(d,clinicianId==d.id){clinicianId=d.id;prefs.edit().putString("clinician",d.id).apply();page="";tab=0}}
+      }
+
       "book-hospital" -> {
        Text("Step 1 of 3 · Hospital & doctor",style=type.labelLarge,color=colors.primary)
        Info("St. Mathew Hospital","Demo hospital · Main outpatient department")
        Text("Who is this visit for?",style=type.titleMedium)
        patients.forEach{p->Choice(p.optString("name"),p.optString("relation"),patientId==p.optString("id")){patientId=p.optString("id")}}
+       Heading("Choose a department",small=true)
+       FlowRow(horizontalArrangement=Arrangement.spacedBy(10.dp),verticalArrangement=Arrangement.spacedBy(8.dp)){CareCatalog.departments.forEach{d->FilterChip(selected=selectedDoctor.departmentId==d.id,onClick={val first=CareCatalog.doctors.first{it.departmentId==d.id};doctor=first.name;department=first.specialty},label={Text(d.name)},modifier=Modifier.heightIn(min=54.dp))}}
        Action("Continue",primary=true){page="book-doctor"}
       }
       "book-doctor" -> {
        Text("Step 1 of 3 · Choose your doctor",style=type.labelLarge)
-       Choice("Dr. Anya Sharma","General medicine · 14 years experience",doctor=="Dr. Anya Sharma"){doctor="Dr. Anya Sharma";department="General medicine"}
-       Choice("Dr. Vikram Nair","Psychiatry · 11 years experience",doctor=="Dr. Vikram Nair"){doctor="Dr. Vikram Nair";department="Psychiatry"}
+       CareCatalog.doctors.filter{it.departmentId==selectedDoctor.departmentId}.forEach{d->DoctorPreview(d,doctor==d.name){doctor=d.name;department=d.specialty}}
        Text("All doctors and profiles are fictional demo data.")
        Action("Choose appointment time",primary=true){page="book-time"}
       }
@@ -241,9 +327,9 @@ private data class Destination(val label:String,val icon:ImageVector)
       "book-review" -> {
        Text("Step 3 of 3 · Review & confirm",style=type.labelLarge)
        Info(patient.optString("name"),"$doctor\n$department\n$date · $time\nSt. Mathew Hospital")
-       Info("Visit charges","Registration ₹100 · Consultation ₹500\nTotal ₹600 · simulated charges only")
+       Info("Visit charges","Registration ₹100 · Consultation ₹${selectedDoctor.fee}\nTotal ₹${100+selectedDoctor.fee} · simulated charges only")
        Text("No money is charged. Registration is marked paid in the demo; consultation appears in Bills.")
-       Action("Confirm demo booking",primary=true){act(event("book","patient" to patientId,"doctor" to doctor,"department" to department,"date" to date,"time" to time));selected=data.optString("lastVisit");page="success"}
+       Action("Confirm demo booking",primary=true){val previous=data.optString("lastVisit");act(event("book","patient" to patientId,"doctor" to doctor,"department" to department,"date" to date,"time" to time));if(data.optString("lastVisit")!=previous){selected=data.optString("lastVisit");page="success"}}
       }
       "success" -> {
        Icon(Icons.Default.CheckCircle,null,tint=colors.primary,modifier=Modifier.size(60.dp))
@@ -262,7 +348,7 @@ private data class Destination(val label:String,val icon:ImageVector)
          Pass(visit)
         }
         if(status in listOf("waiting","active")){
-         if(role=="doctor"&&status=="waiting")Action("Call patient",primary=true,enabled=!data.optBoolean("paused")){act(event("call","id" to selected));page="consultation"}
+         if(role=="doctor"&&status=="waiting")Action("Call patient",primary=true,enabled=!pausedFor(visit.optString("doctor"))){act(event("call","id" to selected));page="consultation"}
          if(role=="doctor"&&status=="active")Action("Open consultation",primary=true){page="consultation"}
          if(role=="patient")Action("View live queue",primary=true){page="queue"}
         }
@@ -276,7 +362,7 @@ private data class Destination(val label:String,val icon:ImageVector)
       }
       "queue" -> if(visit!=null){
        Heading(when(visit.optString("status")){"active"->"It's your turn";"complete"->"Visit complete";else->"${visit.optInt("ahead")} patients before you"})
-       Info("Token #${visit.optInt("token")}",if(data.optBoolean("paused"))"Doctor attending an emergency. Your wait estimate is paused." else if(visit.optString("status")=="complete")"Your consultation is complete." else if(visit.optString("status")=="active")"Please proceed to the consultation room." else "About ${visit.optInt("ahead")*7} minutes · an estimate, not a guarantee")
+       Info("Token #${visit.optInt("token")}",if(pausedFor(visit.optString("doctor")))"Doctor attending an emergency. Your wait estimate is paused." else if(visit.optString("status")=="complete")"Your consultation is complete." else if(visit.optString("status")=="active")"Please proceed to the consultation room." else "About ${visit.optInt("ahead")*7} minutes · an estimate, not a guarantee")
        Text("${visit.optString("doctor")}\nSt. Mathew Hospital · Outpatient room 2")
        Info("You can wait nearby","Keep the app open for updates. Background arrival notifications are not enabled in this demo.")
        Action("View appointment"){page="visit"}

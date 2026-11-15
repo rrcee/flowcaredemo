@@ -6,6 +6,8 @@ import android.content.Context
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
+import android.os.Binder
+import android.os.Process
 import org.json.JSONArray
 import org.json.JSONObject
 import java.util.UUID
@@ -19,7 +21,9 @@ internal fun JSONObject.rows(key:String):List<JSONObject> = optJSONArray(key)?.r
 class HospitalDemoProvider:ContentProvider() {
  override fun onCreate()=true
  override fun call(method:String,arg:String?,extras:Bundle?):Bundle {
-    val engine=LocalDemoEngine(requireNotNull(context))
+    val owner=requireNotNull(context)
+    if(Binder.getCallingUid()!=Process.myUid())owner.enforceCallingPermission("com.flowcare.demo.permission.SHARED_DEMO","Only matching FlowCare demo apps can access this store")
+    val engine=LocalDemoEngine(owner)
     val result=if(method=="state")engine.read() else engine.mutate(JSONObject(arg ?: "{}"))
     return Bundle().apply {putString("state",result.toString())}
  }
@@ -38,7 +42,7 @@ internal class DemoStore(private val context:Context) {
 private class LocalDemoEngine(private val context:Context) {
  companion object {private val lock=Any()}
  private val prefs=context.getSharedPreferences("flowcare_demo_v3",Context.MODE_PRIVATE)
- private fun seed()=obj("patients" to JSONArray().put(obj("id" to "self","name" to "Maya Mathew","relation" to "Self","age" to "34")).put(obj("id" to "parent","name" to "Mary Mathew","relation" to "Mother","age" to "68")),"appointments" to JSONArray(),"bills" to JSONArray(),"prescriptions" to JSONArray(),"paused" to false,"notice" to "Welcome to St. Mathew Hospital")
+ private fun seed()=obj("patients" to JSONArray().put(obj("id" to "self","name" to "Maya Mathew","relation" to "Self","age" to "34")).put(obj("id" to "parent","name" to "Mary Mathew","relation" to "Mother","age" to "68")),"appointments" to JSONArray(),"bills" to JSONArray(),"prescriptions" to JSONArray(),"paused" to false,"pausedDoctors" to JSONObject(),"notice" to "Welcome to St. Mathew Hospital")
  fun read():JSONObject=synchronized(lock){JSONObject(prefs.getString("state",null) ?: seed().toString())}
  fun mutate(event:JSONObject):JSONObject=synchronized(lock){
     val state=read()
@@ -48,12 +52,18 @@ private class LocalDemoEngine(private val context:Context) {
     when(type){
       "book" -> {
         val appointments=state.getJSONArray("appointments")
+        if(appointments.rows().any{it.optString("status") in listOf("confirmed","waiting","active")&&it.optString("doctor")==event.optString("doctor")&&it.optString("date")==event.optString("date")&&it.optString("time")==event.optString("time")}){
+          state.put("notice","That demo time is already booked. Choose another time.")
+          prefs.edit().putString("state",state.toString()).commit()
+          return@synchronized state
+        }
+        val fee=CareCatalog.doctors.firstOrNull{it.name==event.optString("doctor")}?.fee ?: 500
         val patient=state.rows("patients").find {it.getString("id")==event.optString("patient")} ?: state.getJSONArray("patients").getJSONObject(0)
         val key=UUID.randomUUID().toString().take(8)
-        val appointment=obj("id" to key,"patient" to patient.getString("id"),"name" to patient.getString("name"),"doctor" to event.optString("doctor","Dr. Anya Sharma"),"department" to event.optString("department","General medicine"),"date" to event.optString("date","Today"),"time" to event.optString("time","09:30 AM"),"token" to (1001+appointments.length()),"status" to "confirmed","ahead" to 3)
+        val appointment=obj("id" to key,"patient" to patient.getString("id"),"name" to patient.getString("name"),"doctor" to event.optString("doctor","Dr. Anya Sharma"),"department" to event.optString("department","General medicine"),"date" to event.optString("date","Today"),"time" to event.optString("time","09:30 AM"),"token" to (1001+appointments.length()),"status" to "confirmed","ahead" to 0)
         appointments.put(appointment)
         state.getJSONArray("bills").put(obj("id" to "registration-$key","visit" to key,"department" to "Registration","amount" to 100,"paid" to true))
-        state.getJSONArray("bills").put(obj("id" to "consultation-$key","visit" to key,"department" to "Consultation","amount" to 500,"paid" to false))
+        state.getJSONArray("bills").put(obj("id" to "consultation-$key","visit" to key,"department" to "Consultation","amount" to fee,"paid" to false))
         state.put("lastVisit",key);state.put("notice","Appointment confirmed")
       }
       "checkin" -> if(visit?.optString("status")=="confirmed"){visit.put("status","waiting");state.put("notice","Patient checked in")}
@@ -61,12 +71,17 @@ private class LocalDemoEngine(private val context:Context) {
         visit?.put("status","cancelled")
         state.put("bills",JSONArray(state.rows("bills").filter {it.optString("visit")!=id || it.optBoolean("paid")}));state.put("notice","Appointment cancelled")
       }
-      "call" -> if(!state.optBoolean("paused") && visit?.optString("status")=="waiting"){
+      "call" -> if(visit?.optString("status")=="waiting" && !(state.optJSONObject("pausedDoctors")?.optBoolean(visit.optString("doctor")) ?: state.optBoolean("paused"))){
         state.rows("appointments").filter {it.optString("doctor")==visit.optString("doctor")&&it.optString("status")=="active"}.forEach {it.put("status","complete")}
         visit.put("status","active");visit.put("ahead",0);state.put("notice","Doctor is ready for you")
       }
       "advance" -> if(visit!=null){visit.put("ahead",(visit.optInt("ahead")-1).coerceAtLeast(0));state.put("notice","Queue updated")}
-      "pause" -> {state.put("paused",!state.optBoolean("paused"));state.put("notice",if(state.optBoolean("paused"))"Doctor attending an emergency" else "Queue resumed")}
+      "pause" -> {
+        val doctor=event.optString("doctor","Dr. Anya Sharma")
+        val paused=state.optJSONObject("pausedDoctors") ?: JSONObject()
+        paused.put(doctor,!paused.optBoolean(doctor));state.put("pausedDoctors",paused)
+        state.put("notice",if(paused.optBoolean(doctor))"Doctor attending an emergency" else "Queue resumed")
+      }
       "complete" -> if(visit?.optString("status")=="active"){visit.put("status","complete");state.put("notice","Consultation completed")}
       "order" -> if(visit?.optString("status")=="active"){
         val department=event.optString("department","Blood test")
@@ -84,6 +99,12 @@ private class LocalDemoEngine(private val context:Context) {
       }
       "review" -> if(visit?.optString("status")=="complete"){visit.put("review",event.optInt("stars",5).coerceIn(1,5));state.put("notice","Thank you for your feedback")}
       "reset" -> {prefs.edit().remove("state").commit();context.contentResolver.notifyChange(DEMO_URI,null);return@synchronized seed()}
+    }
+    if(type in listOf("book","checkin","cancel","call","complete")){
+      state.rows("appointments").filter{it.optString("status") in listOf("waiting","active")}.groupBy{it.optString("doctor")}.values.forEach{queue->
+        val ordered=queue.sortedBy{if(it.optString("status")=="active")0 else 1}
+        ordered.forEachIndexed{i,v->v.put("ahead",i)}
+      }
     }
     prefs.edit().putString("state",state.toString()).commit()
     context.contentResolver.notifyChange(DEMO_URI,null)
