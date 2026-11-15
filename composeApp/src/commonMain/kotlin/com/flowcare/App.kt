@@ -19,6 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
@@ -44,29 +45,31 @@ private val Lavender=Color(0xFF8A79AF)
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun App(initialUrl: String) {
-    var base by remember { mutableStateOf(initialUrl) }
-    var doctorRole by remember { mutableStateOf(false) }
-    var page by remember { mutableStateOf("Welcome") }
+    var base by rememberSaveable { mutableStateOf(initialUrl) }
+    var doctorRole by rememberSaveable { mutableStateOf(false) }
+    var page by rememberSaveable { mutableStateOf("Welcome") }
     var state by remember { mutableStateOf(JsonObject(emptyMap())) }
     var errorMessage by remember { mutableStateOf("") }
     var notice by remember { mutableStateOf("") }
     var connected by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
-    var patient by remember { mutableStateOf("Self") }
-    var selectedDoctor by remember { mutableStateOf("anya") }
-    var selectedBooking by remember { mutableStateOf("") }
-    var slot by remember { mutableStateOf("") }
+    var patient by rememberSaveable { mutableStateOf("Self") }
+    var selectedDoctor by rememberSaveable { mutableStateOf("anya") }
+    var selectedBooking by rememberSaveable { mutableStateOf("") }
+    var slot by rememberSaveable { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var history by remember { mutableStateOf("") }
     var chat by remember { mutableStateOf("") }
     var reply by remember { mutableStateOf("") }
-    var dark by remember { mutableStateOf(false) }
+    var dark by rememberSaveable { mutableStateOf(false) }
     val scope=rememberCoroutineScope()
     val client=remember { HttpClient {
         install(WebSockets)
         install(HttpTimeout) { requestTimeoutMillis=15000; connectTimeoutMillis=10000 }
     } }
     val currentConnection by rememberUpdatedState(base to doctorRole)
+    var previousBase by rememberSaveable { mutableStateOf(initialUrl) }
+    var previousRole by rememberSaveable { mutableStateOf(false) }
     var actionJob by remember { mutableStateOf<Job?>(null) }
     var allBills by remember { mutableStateOf(false) }
     DisposableEffect(base,doctorRole) { onDispose { actionJob?.cancel(); busy=false } }
@@ -101,7 +104,9 @@ fun App(initialUrl: String) {
     }
     fun body(vararg pairs:Pair<String,String>)=buildJsonObject { pairs.forEach { put(it.first,it.second) } }
     LaunchedEffect(base,doctorRole) {
-        state=JsonObject(emptyMap());selectedBooking="";connected=false
+        state=JsonObject(emptyMap());connected=false
+        if(previousBase!=base || previousRole!=doctorRole) selectedBooking=""
+        previousBase=base;previousRole=doctorRole
         errorMessage="";notice="";history="";notes="";reply="";chat=""
         while(isActive) {
             try {

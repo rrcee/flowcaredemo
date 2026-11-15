@@ -13,3 +13,7 @@
 - Added empty/reconnect states, wrapping controls, bundled fonts, themed foregrounds and paused queue-estimate copy.
 
 Backend: four integration tests pass locally. Native build status and artifacts are recorded by GitHub Actions. No claim of live payment/OCR/call integration or production authorization is made.
+
+- Preserved role, current screen, selected appointment, and theme through Android configuration changes; sensitive record/chat text remains transient. Emulator checks that large-text configuration changes preserve the doctor console.
+- Corrected the emulator component name to the actual Kotlin activity package, and added failure screenshots/logs.
+- Generated iOS local-network permissions in a proper nested Info.plist dictionary and pinned simulator architecture.
