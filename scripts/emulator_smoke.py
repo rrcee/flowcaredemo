@@ -25,6 +25,12 @@ def tap(text,scroll=False):tapnode(find(text,scroll=scroll))
 def launch(role,first=False):
  adb('shell','am','start','-n',f'com.flowcare.demo.{role}/com.flowcare.MainActivity')
  if first:tap('Use demo account',scroll=True)
+def dashboard(role):
+ launch(role)
+ for _ in range(4):
+  if any(n.get('text')=='Profile' for n in nodes()):return
+  adb('shell','input','keyevent','KEYCODE_BACK')
+ raise AssertionError('Could not return to main navigation')
 def fail(kind,value,tb):
  try:
   screen('failure');(out/'failure.xml').write_bytes(adb('exec-out','cat','/data/local/tmp/flowcare-ui.xml'));(out/'logcat.txt').write_bytes(adb('logcat','-d','-t','700'))
@@ -46,9 +52,9 @@ if not fields:down();fields=[n for n in nodes() if n.get('class')=='android.widg
 assert fields,'Care-plan field is missing'
 tapnode(fields[0]);adb('shell','input','text','Fictional%sdemo%scare%splan')
 adb('shell','input','keyevent','KEYCODE_BACK');tap('Share care instructions',True);screen('06-doctor-consultation');tap('Complete consultation',True)
-launch('patient');tap('Bills');find('Blood test',scroll=True);screen('07-patient-bills');tap('Pay ₹450 in demo',True)
+dashboard('patient');tap('Bills');find('Blood test',scroll=True);screen('07-patient-bills');tap('Pay ₹450 in demo',True)
 # Fulfillment sees the simulated payment.
-launch('hospital');tap('Orders');find('Blood test');screen('08-hospital-orders');tap('Mark Blood test ready',True)
+dashboard('hospital');tap('Orders');find('Blood test');screen('08-hospital-orders');tap('Mark Blood test ready',True)
 launch('patient');tap('Visits');tap('Maya Mathew',True);tap('View care instructions',True);find('Fictional demo care plan');screen('09-patient-aftercare')
 adb('shell','input','keyevent','KEYCODE_BACK');adb('shell','input','keyevent','KEYCODE_BACK');tap('Profile');find('Family members');screen('10-patient-profile')
 adb('shell','settings','put','system','font_scale','1.3');time.sleep(2);find('Family members',scroll=True);screen('11-large-text-profile');adb('shell','settings','put','system','font_scale','1.0')
