@@ -4,6 +4,7 @@ plugins {
     id("org.jetbrains.compose")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.android.application")
+    id("com.google.gms.google-services")
 }
 kotlin {
     androidTarget { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
@@ -23,6 +24,8 @@ kotlin {
         }
         commonTest.dependencies { implementation(kotlin("test")) }
         androidMain.dependencies {
+            implementation(project.dependencies.platform("com.google.firebase:firebase-bom:35.2.0"))
+            implementation("com.google.firebase:firebase-auth")
             implementation("androidx.activity:activity-compose:1.10.1")
             implementation("com.google.zxing:core:3.5.3")
             implementation("androidx.compose.material:material-icons-extended:1.7.8")

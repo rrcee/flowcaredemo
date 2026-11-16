@@ -1,0 +1,9 @@
+{
+  "firestore": {
+    "database": "flowcare",
+    "location": "asia-south1",
+    "edition": "enterprise",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}

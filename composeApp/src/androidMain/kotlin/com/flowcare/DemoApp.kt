@@ -56,6 +56,7 @@ private data class Destination(val label:String,val icon:ImageVector)
  val store=remember {DemoStore(context)}
  var data by remember {mutableStateOf(store.read())}
  var logged by rememberSaveable {mutableStateOf(prefs.getBoolean("logged",false))}
+ var showLiveAccount by rememberSaveable {mutableStateOf(false)}
  var signup by rememberSaveable {mutableStateOf(false)}
  var email by rememberSaveable {mutableStateOf(when(role){"doctor"->"doctor@flowcare.demo";"hospital"->"desk@stmathew.demo";else->"maya@flowcare.demo"})}
  var password by remember {mutableStateOf("")}
@@ -104,6 +105,7 @@ private data class Destination(val label:String,val icon:ImageVector)
  }
  SideEffect{onThemeChanged(dark)}
  BackHandler(!logged&&signup){signup=false;loginError=""}
+ BackHandler(!logged&&showLiveAccount){showLiveAccount=false}
  BackHandler(logged&&(page.isNotEmpty()||tab!=0)){back()}
  val colors=flowCareColors(dark)
  val type=flowCareTypography()
@@ -121,7 +123,9 @@ private data class Destination(val label:String,val icon:ImageVector)
  val current=myVisits.firstOrNull{it.optString("status") !in listOf("complete","cancelled")}
  val appName=when(role){"doctor"->"FlowCare Doctor";"hospital"->"St. Mathew Hospital";else->"FlowCare"}
  MaterialTheme(colorScheme=colors,typography=type,shapes=FlowCareShapes){
-  if(!logged){
+  if(!logged&&showLiveAccount){
+   LiveAccount(onBack={showLiveAccount=false})
+  } else if(!logged){
    Surface(Modifier.fillMaxSize(),color=colors.background){
     Column(Modifier.safeDrawingPadding().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),verticalArrangement=Arrangement.spacedBy(20.dp)){
      Spacer(Modifier.height(16.dp));Image(painterResource(R.drawable.ic_launcher),contentDescription="$appName icon",modifier=Modifier.size(84.dp))
@@ -134,6 +138,7 @@ private data class Destination(val label:String,val icon:ImageVector)
      if(loginError.isNotBlank())Text(loginError,color=colors.error)
      Action(if(signup)"Create demo profile" else "Sign in to demo",primary=true){if(!email.contains("@")||password.length<4)loginError="Enter a valid email and a demo password of at least 4 characters." else {if(signup&&loginName.isNotBlank())prefs.edit().putString("name",loginName).apply();signIn()}}
      Action("Use demo account"){signIn()}
+     if(appRole=="patient")OutlinedButton(onClick={showLiveAccount=true},modifier=Modifier.fillMaxWidth().heightIn(min=60.dp)){Text("Manage a real account")}
      TextButton(onClick={signup=!signup;loginError=""}){Text(if(signup)"Already have a demo profile? Sign in" else "Create a demo profile")}
      Text("Do not enter a real password or medical information. This demo validates the form locally; it does not authenticate a real account.",style=type.bodyMedium)
     }
