@@ -55,7 +55,10 @@ private fun event(type:String,vararg values:Pair<String,Any>)=JSONObject().put("
 private data class Destination(val label:String,val icon:ImageVector)
 
 @OptIn(ExperimentalMaterial3Api::class,ExperimentalLayoutApi::class)
-@Composable fun DemoApp(role:String,onThemeChanged:(Boolean)->Unit={}) {
+@Composable fun DemoApp(appRole:String,onThemeChanged:(Boolean)->Unit={}) {
+ if(appRole=="hq"){HqApp();return}
+ var workspace by rememberSaveable {mutableStateOf("hospital")}
+ val role=if(appRole=="hospital")workspace else appRole
  val context=LocalContext.current
  val prefs=remember {context.getSharedPreferences("flowcare_account",0)}
  val store=remember {DemoStore(context)}
@@ -149,6 +152,7 @@ private data class Destination(val label:String,val icon:ImageVector)
    topBar={TopAppBar(title={Text(if(page.isBlank())appName else when(page){"book-hospital"->"Choose your care";"book-doctor"->"Choose a doctor";"book-time"->"Choose a time";"book-review"->"Review your visit";"visit"->"Visit details";"queue"->"Live queue";"family"->"Family members";"add-family"->"Add family member";"consultation"->"Consultation";"prescription"->"Care instructions";"success"->"Booking confirmed";"help"->"Help & support";"search"->"Find your care";"departments"->"Care departments";"department"->catalogDepartment.name;"doctors"->"Our doctors";"doctor-detail"->"Doctor profile";"clinician-switch"->"Demo clinician";else->"Settings"},style=type.titleMedium,maxLines=1,overflow=TextOverflow.Ellipsis)},navigationIcon={if(page.isNotBlank())IconButton(onClick={back()}){Icon(Icons.AutoMirrored.Filled.ArrowBack,"Back")}},actions={
      IconButton(onClick={notify(data.optString("notice","No new updates"))}){Icon(Icons.Default.NotificationsNone,"Notifications")}
      Box {IconButton(onClick={menu=true}){Icon(Icons.Default.MoreVert,"More options")};DropdownMenu(menu,{menu=false}){
+      if(appRole=="hospital")DropdownMenuItem(text={Text(if(role=="hospital")"Doctor workspace" else "Hospital workspace")},onClick={workspace=if(role=="hospital")"doctor" else "hospital";menu=false;page="";tab=0})
       DropdownMenuItem(text={Text("Settings")},onClick={menu=false;page="settings"})
       DropdownMenuItem(text={Text("Help & support")},onClick={menu=false;page="help"})
       DropdownMenuItem(text={Text("Sign out")},onClick={menu=false;logged=false;page="";tab=0;prefs.edit().putBoolean("logged",false).apply()})

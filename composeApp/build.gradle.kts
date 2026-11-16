@@ -34,13 +34,13 @@ kotlin {
 android {
     namespace = "com.flowcare"
     compileSdk = 35
-    defaultConfig { applicationId = "com.flowcare.demo"; minSdk = 26; targetSdk = 35; versionCode = 4; versionName = "0.4.0" }
+    defaultConfig { applicationId = "com.flowcare.demo"; minSdk = 26; targetSdk = 35; versionCode = 5; versionName = "0.5.0" }
     buildFeatures { buildConfig = true }
     flavorDimensions += "role"
     productFlavors {
         create("patient") { dimension="role"; applicationIdSuffix=".patient"; buildConfigField("String","APP_ROLE","\"patient\""); resValue("string","app_name","FlowCare Patient") }
-        create("doctor") { dimension="role"; applicationIdSuffix=".doctor"; buildConfigField("String","APP_ROLE","\"doctor\""); resValue("string","app_name","FlowCare Doctor") }
-        create("hospital") { dimension="role"; applicationIdSuffix=".hospital"; buildConfigField("String","APP_ROLE","\"hospital\""); resValue("string","app_name","St. Mathew Hospital") }
+        create("hq") { dimension="role"; applicationIdSuffix=".hq"; buildConfigField("String","APP_ROLE","\"hq\""); resValue("string","app_name","FlowCare HQ Admin") }
+        create("hospital") { dimension="role"; applicationIdSuffix=".hospital"; buildConfigField("String","APP_ROLE","\"hospital\""); resValue("string","app_name","St. Mathew Care Team") }
     }
     buildTypes { getByName("release") { isMinifyEnabled = false } }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }

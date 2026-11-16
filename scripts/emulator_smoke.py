@@ -53,7 +53,7 @@ tap('Book an appointment',True);tap('Continue',True);tap('Choose appointment tim
 find("You're booked");tap('View appointment',True);find('Check in');screen('04-patient-pass')
 # Hospital sees the patient booking without any server.
 launch('hospital');tap('Check-in');tap('Maya Mathew',True);tap('Check in',True);screen('05-hospital-checkin')
-launch('doctor',True);find("Today's queue");tap('Maya Mathew',True);tap('Call patient',True);find('Consultation');tap('Order blood test',True)
+dashboard('hospital');tap('More options');tap('Doctor workspace');find("Today's queue");tap('Maya Mathew',True);tap('Call patient',True);find('Consultation');tap('Order blood test',True)
 # Scroll to the editable care-plan field if needed.
 fields=[n for n in nodes() if n.get('class')=='android.widget.EditText']
 if not fields:down();fields=[n for n in nodes() if n.get('class')=='android.widget.EditText']
@@ -62,8 +62,10 @@ tapnode(fields[0]);adb('shell','input','text','Fictional%sdemo%scare%splan')
 adb('shell','input','keyevent','KEYCODE_BACK');tap('Share care instructions',True);screen('06-doctor-consultation');tap('Complete consultation',True)
 dashboard('patient');tap('Bills');find('Blood test',scroll=True);screen('07-patient-bills');tap('Pay ₹450 in demo',True)
 # Fulfillment sees the simulated payment.
-dashboard('hospital');tap('Orders');find('Blood test');screen('08-hospital-orders');tap('Mark Blood test ready',True)
+dashboard('hospital');tap('More options');tap('Hospital workspace');tap('Orders');find('Blood test');screen('08-hospital-orders');tap('Mark Blood test ready',True)
 launch('patient');tap('Visits');tap('Maya Mathew',True);tap('View care instructions',True);find('Fictional demo care plan');screen('09-patient-aftercare')
 adb('shell','input','keyevent','KEYCODE_BACK');adb('shell','input','keyevent','KEYCODE_BACK');tap('Profile');find('Family members');screen('10-patient-profile')
 adb('shell','settings','put','system','font_scale','1.3');time.sleep(2);find('Family members',scroll=True);screen('11-large-text-profile');adb('shell','settings','put','system','font_scale','1.0')
 print('PASS: offline patient booking → hospital check-in → doctor consultation/lab/Rx → patient payment → hospital fulfillment → patient aftercare, profile and large text.')
+
+launch('hq');find('HQ control');tap('Notifications');find('Remote service not connected');screen('12-hq-notifications')

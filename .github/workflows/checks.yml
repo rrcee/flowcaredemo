@@ -24,7 +24,7 @@ jobs:
         with:
           path: ~/.android/debug.keystore
           key: flowcare-offline-demo-signing-v1
-      - run: gradle :composeApp:assembleDebug :composeApp:testPatientDebugUnitTest :composeApp:testDoctorDebugUnitTest :composeApp:testHospitalDebugUnitTest :composeApp:lintPatientDebug :composeApp:lintDoctorDebug :composeApp:lintHospitalDebug --stacktrace
+      - run: gradle :composeApp:assembleDebug :composeApp:testPatientDebugUnitTest :composeApp:testHqDebugUnitTest :composeApp:testHospitalDebugUnitTest :composeApp:lintPatientDebug :composeApp:lintHqDebug :composeApp:lintHospitalDebug --stacktrace
       - uses: actions/upload-artifact@v4
         with:
           name: FlowCare-Android-debug
@@ -62,7 +62,7 @@ jobs:
           script: |
             find apk -path '*hospital*' -name '*.apk' -exec adb install {} \;
             find apk -path '*patient*' -name '*.apk' -exec adb install {} \;
-            find apk -path '*doctor*' -name '*.apk' -exec adb install {} \;
+            find apk -path '*hq*' -name '*.apk' -exec adb install {} \;
             python scripts/emulator_smoke.py
       - uses: actions/upload-artifact@v4
         if: always()
