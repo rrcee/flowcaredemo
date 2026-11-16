@@ -42,6 +42,7 @@ internal class DemoStore(private val context:Context) {
 private class LocalDemoEngine(private val context:Context) {
  companion object {private val lock=Any()}
  private val prefs=context.getSharedPreferences("flowcare_demo_v3",Context.MODE_PRIVATE)
+ private fun notifySharedChange() {try {context.contentResolver.notifyChange(DEMO_URI,null)} catch (_:SecurityException) {} catch (_:IllegalArgumentException) {}}
  private fun seed()=obj("patients" to JSONArray().put(obj("id" to "self","name" to "Maya Mathew","relation" to "Self","age" to "34")).put(obj("id" to "parent","name" to "Mary Mathew","relation" to "Mother","age" to "68")),"appointments" to JSONArray(),"bills" to JSONArray(),"prescriptions" to JSONArray(),"paused" to false,"pausedDoctors" to JSONObject(),"notice" to "Welcome to St. Mathew Hospital")
  fun read():JSONObject=synchronized(lock){JSONObject(prefs.getString("state",null) ?: seed().toString())}
  fun mutate(event:JSONObject):JSONObject=synchronized(lock){
@@ -98,7 +99,7 @@ private class LocalDemoEngine(private val context:Context) {
         state.getJSONArray("patients").put(obj("id" to UUID.randomUUID().toString().take(8),"name" to event.optString("name").trim(),"relation" to event.optString("relation","Family"),"age" to event.optString("age")));state.put("notice","Family member added")
       }
       "review" -> if(visit?.optString("status")=="complete"){visit.put("review",event.optInt("stars",5).coerceIn(1,5));state.put("notice","Thank you for your feedback")}
-      "reset" -> {prefs.edit().remove("state").commit();context.contentResolver.notifyChange(DEMO_URI,null);return@synchronized seed()}
+      "reset" -> {prefs.edit().remove("state").commit();notifySharedChange();return@synchronized seed()}
     }
     if(type in listOf("book","checkin","cancel","call","complete")){
       state.rows("appointments").filter{it.optString("status") in listOf("waiting","active")}.groupBy{it.optString("doctor")}.values.forEach{queue->
@@ -107,7 +108,8 @@ private class LocalDemoEngine(private val context:Context) {
       }
     }
     prefs.edit().putString("state",state.toString()).commit()
-    context.contentResolver.notifyChange(DEMO_URI,null)
+    notifySharedChange()
     state
  }
 }
+

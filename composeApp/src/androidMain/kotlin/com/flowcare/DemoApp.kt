@@ -102,8 +102,9 @@ private data class Destination(val label:String,val icon:ImageVector)
  fun signIn(){logged=true;password="";loginError="";prefs.edit().putBoolean("logged",true).putString("email",email).apply()}
  DisposableEffect(store){
   val observer=object:ContentObserver(Handler(Looper.getMainLooper())){override fun onChange(selfChange:Boolean){data=store.read()}}
-  context.contentResolver.registerContentObserver(DEMO_URI,true,observer)
-  onDispose {context.contentResolver.unregisterContentObserver(observer)}
+  // The hospital provider is optional: a fresh patient install must launch alone.
+  val registered=try {context.contentResolver.registerContentObserver(DEMO_URI,true,observer);true} catch (_:SecurityException) {false} catch (_:IllegalArgumentException) {false}
+  onDispose {if(registered)context.contentResolver.unregisterContentObserver(observer)}
  }
  SideEffect{onThemeChanged(dark)}
  BackHandler(!logged&&signup){signup=false;loginError=""}
@@ -439,3 +440,4 @@ private data class Destination(val label:String,val icon:ImageVector)
 @Composable private fun VisitSummary(v:JSONObject){Heading(v.optString("name"));Info(v.optString("doctor"),"${v.optString("department")}\n${v.optString("date")} · ${v.optString("time")}\nSt. Mathew Hospital\n${v.optString("status").replaceFirstChar{it.uppercase()}} · Token #${v.optInt("token")}")}
 @Composable private fun BillCard(b:JSONObject,onPay:()->Unit){Column(verticalArrangement=Arrangement.spacedBy(10.dp)){Info(b.optString("department"),"₹${b.optInt("amount")} · ${if(b.optBoolean("paid"))"Paid" else "Payment pending"}${if(b.optBoolean("ready"))" · Ready for collection" else ""}");if(!b.optBoolean("paid"))Action("Pay ₹${b.optInt("amount")} in demo",primary=true,onClick=onPay)}}
 @Composable private fun Pass(v:JSONObject){val image=remember(v.optString("id")){val bits=MultiFormatWriter().encode("flowcare-demo:${v.optString("id")}",BarcodeFormat.QR_CODE,256,256);Bitmap.createBitmap(256,256,Bitmap.Config.ARGB_8888).apply{for(y in 0..255)for(x in 0..255)setPixel(x,y,if(bits[x,y])android.graphics.Color.BLACK else android.graphics.Color.WHITE)}.asImageBitmap()};Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(10.dp)){Image(image,"Demo appointment QR pass",modifier=Modifier.size(180.dp).background(Color.White));Text("Pass ${v.optString("id")} · Token #${v.optInt("token")}",style=MaterialTheme.typography.bodyMedium)}}
+

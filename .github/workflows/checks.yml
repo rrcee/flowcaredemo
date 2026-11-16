@@ -92,6 +92,9 @@ jobs:
           profile: pixel_6
           disable-animations: true
           script: |
+            find apk -path '*patient*' -name '*.apk' -exec adb install {} \;
+            python scripts/standalone_smoke.py
+            adb uninstall com.flowcare.demo.patient
             find apk -path '*hospital*' -name '*.apk' -exec adb install {} \;
             find apk -path '*patient*' -name '*.apk' -exec adb install {} \;
             find apk -path '*hq*' -name '*.apk' -exec adb install {} \;
@@ -101,3 +104,4 @@ jobs:
         with:
           name: FlowCare-native-screenshots
           path: build/native-screenshots/
+
