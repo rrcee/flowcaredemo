@@ -41,6 +41,7 @@ sys.excepthook=fail
 adb('shell','svc','wifi','disable');adb('shell','svc','data','disable')
 launch('hospital',True);find('Hospital overview');screen('01-hospital-overview')
 launch('patient',True);find('Hello, Maya');screen('02-patient-home')
+tap('Family');find('Who are you caring for?');adb('shell','input','keyevent','KEYCODE_BACK');find('Hello, Maya')
 tap('Search doctors or departments')
 fields=[n for n in nodes() if n.get('class')=='android.widget.EditText']
 assert fields,'Care-search input is missing'
@@ -50,7 +51,7 @@ adb('shell','input','keyevent','KEYCODE_BACK');find('Find the care you need');ad
 tap('See all',True);tap('Heart care',True);find('Care at this clinic',scroll=True);screen('02b-department-detail')
 adb('shell','input','keyevent','KEYCODE_BACK');adb('shell','input','keyevent','KEYCODE_BACK');find('Hello, Maya')
 tap('Book an appointment',True);tap('Continue',True);tap('Choose appointment time',True);tap('Review appointment',True);screen('03-booking-review');tap('Confirm demo booking',True)
-find("You're booked");tap('View appointment',True);find('Check in');screen('04-patient-pass')
+find("You're booked");tap('Go to home',True);find('Your next visit',scroll=True);screen('03a-upcoming-visit');tap('View appointment',True);find('Check in');screen('04-patient-pass')
 # Hospital sees the patient booking without any server.
 launch('hospital');tap('Check-in');tap('Maya Mathew',True);tap('Check in',True);screen('05-hospital-checkin')
 dashboard('hospital');tap('More options');tap('Doctor workspace');find("Today's queue");tap('Maya Mathew',True);tap('Call patient',True);find('Consultation');tap('Order blood test',True)
