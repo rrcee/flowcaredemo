@@ -15,11 +15,11 @@ jobs:
       - name: Wait for tested builds
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh run watch 43800796248 --exit-status --interval 30
+        run: gh run watch 43800837179 --exit-status --interval 30
       - uses: actions/download-artifact@v4
         with:
           name: FlowCare-Android-debug
-          run-id: 43800796248
+          run-id: 43800837179
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: dist
       - name: Package verified offline apps
@@ -27,7 +27,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
-          test "$(gh run view 43800796248 --json conclusion --jq .conclusion)" = success
+          test "$(gh run view 43800837179 --json conclusion --jq .conclusion)" = success
           for role in Patient HQ-Admin Care-Team; do
             case "$role" in Patient) role_key=patient;; HQ-Admin) role_key=hq;; Care-Team) role_key=hospital;; esac
             task_apk=$(find dist -type f -name "*-${role_key}-debug.apk" -print -quit)
@@ -45,6 +45,6 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh release view v0.5.0-demo >/dev/null 2>&1 || gh release create v0.5.0-demo --target 1161378de7c5f0f9bc21cea222b59fa11b85f3d2 --draft --prerelease --title 'FlowCare — Patient, Care Team and HQ Admin' --notes-file docs/ANDROID_RELEASE.md
+          gh release view v0.5.0-demo >/dev/null 2>&1 || gh release create v0.5.0-demo --target 9f4d1dc7daf9e1228aa9c6da4b877f63ecd67b01 --draft --prerelease --title 'FlowCare — Patient, Care Team and HQ Admin' --notes-file docs/ANDROID_RELEASE.md
           gh release upload v0.5.0-demo dist/FlowCare-*.apk dist/FlowCare-*.zip dist/SHA256SUMS.txt --clobber
           gh release edit v0.5.0-demo --draft=false --prerelease --notes-file docs/ANDROID_RELEASE.md
