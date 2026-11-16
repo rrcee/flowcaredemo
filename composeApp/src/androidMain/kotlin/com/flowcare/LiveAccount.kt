@@ -22,7 +22,7 @@ import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import kotlinx.coroutines.launch
 
-/** Account access is isolated from the offline demo until live clinical services are ready. */
+/** Account access is isolated from the offline prototype until live clinical services are ready. */
 @Composable
 internal fun LiveAccount(onBack: () -> Unit, allowPatientRegistration: Boolean = true, allowLiveCare: Boolean = true) {
     if (allowPatientRegistration) {
@@ -51,9 +51,9 @@ internal fun LiveAccount(onBack: () -> Unit, allowPatientRegistration: Boolean =
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.safeDrawingPadding().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)) {
-            TextButton(onClick = onBack) { Text("Back to demo") }
+            TextButton(onClick = onBack) { Text("Back to prototype") }
             Text("FlowCare account", style = MaterialTheme.typography.headlineMedium)
-            Text("This is separate from the offline demo. Connected care requires an available service and the appropriate account access.",
+            Text("This is separate from the offline prototype. Connected care requires an available service and the appropriate account access.",
                 style = MaterialTheme.typography.bodyMedium)
             val current = user
             if (current != null) {
@@ -155,4 +155,3 @@ internal fun LiveAccount(onBack: () -> Unit, allowPatientRegistration: Boolean =
         }
     }
 }
-

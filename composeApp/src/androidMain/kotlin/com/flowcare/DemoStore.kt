@@ -54,7 +54,7 @@ private class LocalDemoEngine(private val context:Context) {
       "book" -> {
         val appointments=state.getJSONArray("appointments")
         if(appointments.rows().any{it.optString("status") in listOf("confirmed","waiting","active")&&it.optString("doctor")==event.optString("doctor")&&it.optString("date")==event.optString("date")&&it.optString("time")==event.optString("time")}){
-          state.put("notice","That demo time is already booked. Choose another time.")
+          state.put("notice","That time is already booked. Choose another time.")
           prefs.edit().putString("state",state.toString()).commit()
           return@synchronized state
         }
@@ -93,7 +93,7 @@ private class LocalDemoEngine(private val context:Context) {
         state.put("prescriptions",JSONArray(state.rows("prescriptions").filter{it.optString("visit")!=id}).put(obj("visit" to id,"doctor" to visit.optString("doctor"),"text" to event.optString("text"),"patient" to visit.optString("name"))))
         state.put("notice","Prescription shared")
       }
-      "pay" -> {state.rows("bills").find{it.optString("id")==id}?.put("paid",true);state.put("notice","Demo payment completed — no money charged")}
+      "pay" -> {state.rows("bills").find{it.optString("id")==id}?.put("paid",true);state.put("notice","Simulated payment completed — no money charged")}
       "ready" -> {state.rows("bills").find{it.optString("id")==id}?.put("ready",true);state.put("notice","Order marked ready")}
       "family" -> if(event.optString("name").isNotBlank()){
         state.getJSONArray("patients").put(obj("id" to UUID.randomUUID().toString().take(8),"name" to event.optString("name").trim(),"relation" to event.optString("relation","Family"),"age" to event.optString("age")));state.put("notice","Family member added")
@@ -112,4 +112,3 @@ private class LocalDemoEngine(private val context:Context) {
     state
  }
 }
-

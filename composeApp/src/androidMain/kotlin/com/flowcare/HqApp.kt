@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.sp
  0->{Text("One place for your care network",style=MaterialTheme.typography.titleLarge);Text("Prepare announcements for patients and the hospital care team. HQ has no access to patient records.",style=MaterialTheme.typography.bodyLarge);Button(onClick={tab=1},modifier=Modifier.fillMaxWidth().heightIn(min=60.dp)){Text("Prepare announcement")};OutlinedButton(onClick={tab=2},modifier=Modifier.fillMaxWidth().heightIn(min=60.dp)){Text("Review app updates")}}
  1->{Text("Audience",style=MaterialTheme.typography.titleMedium);Row(horizontalArrangement=Arrangement.spacedBy(8.dp)){listOf("Patients","Care team").forEach { a->FilterChip(selected=audience==a,onClick={audience=a},label={Text(a)}) }};OutlinedTextField(title,{title=it.take(100)},label={Text("Announcement title")},modifier=Modifier.fillMaxWidth());OutlinedTextField(body,{body=it.take(500)},label={Text("Message")},minLines=4,modifier=Modifier.fillMaxWidth());Button(onClick={preview=true},enabled=title.isNotBlank()&&body.isNotBlank(),modifier=Modifier.fillMaxWidth().heightIn(min=60.dp)){Text("Preview announcement")};Text("Drafts exist only while this screen session is open. Do not include patient or medical information.")}
  2->{Text("Installed build: ${BuildConfig.VERSION_NAME}",style=MaterialTheme.typography.titleLarge);Text("Update announcements will link to a published APK. Remote publishing and maintenance controls are unavailable until the service is connected.",style=MaterialTheme.typography.bodyLarge)}
- 3->{Text("Patient records: no access",style=MaterialTheme.typography.titleLarge);Text("This app does not open the clinical data provider, save announcement drafts, or embed server credentials.",style=MaterialTheme.typography.bodyLarge);Text("Remote HQ controls and push delivery are not connected.",style=MaterialTheme.typography.bodyLarge);OutlinedButton(onClick={showAccount=true},modifier=Modifier.fillMaxWidth().heightIn(min=60.dp)){Text("Manage a real account")}}
+ 3->{Text("Patient records: no access",style=MaterialTheme.typography.titleLarge);Text("This app does not open the clinical data provider, save announcement drafts, or embed server credentials.",style=MaterialTheme.typography.bodyLarge);Text("Remote HQ controls and push delivery are not connected.",style=MaterialTheme.typography.bodyLarge);OutlinedButton(onClick={showAccount=true},modifier=Modifier.fillMaxWidth().heightIn(min=60.dp)){Text("Manage a real account")};Card(Modifier.fillMaxWidth()){Text("Prototype app built with love by Rishi, Irfan, Joshua and Mathew.",modifier=Modifier.padding(20.dp),style=MaterialTheme.typography.bodyMedium)}}
  }
  }
  }
@@ -47,4 +47,3 @@ import androidx.compose.ui.unit.sp
  }
  }
 }
-

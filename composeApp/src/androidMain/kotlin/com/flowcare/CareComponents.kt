@@ -2,6 +2,11 @@ package com.flowcare
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,15 +29,18 @@ import org.json.JSONObject
 /** A single, rounded navigation surface shared by every FlowCare app. */
 @Composable internal fun FlowCareDock(items: List<Pair<String, ImageVector>>, selected: Int, onSelect: (Int) -> Unit) {
     val c = MaterialTheme.colorScheme
+    val light = rememberInfiniteTransition(label = "dock edge light").animateFloat(
+        initialValue = .25f, targetValue = .65f,
+        animationSpec = infiniteRepeatable(tween(2800), RepeatMode.Reverse), label = "dock glow")
     Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 10.dp)) {
         Surface(shape = RoundedCornerShape(30.dp), color = c.surface, shadowElevation = 6.dp,
-            border = BorderStroke(1.dp, c.outlineVariant), modifier = Modifier.fillMaxWidth()) {
+            border = BorderStroke(1.5.dp, Brush.horizontalGradient(listOf(c.outlineVariant, c.primary.copy(alpha = light.value), c.outlineVariant))), modifier = Modifier.fillMaxWidth()) {
             NavigationBar(containerColor = Color.Transparent, tonalElevation = 0.dp, windowInsets = WindowInsets(0, 0, 0, 0)) {
                 items.forEachIndexed { index, item ->
                     val iconSize = animateDpAsState(if (selected == index) 32.dp else 28.dp, label = "dock icon size")
                     NavigationBarItem(selected = selected == index, onClick = { onSelect(index) },
                         icon = { Icon(item.second, contentDescription = item.first, modifier = Modifier.size(iconSize.value)) },
-                        colors = NavigationBarItemDefaults.colors(indicatorColor = c.primaryContainer,
+                        colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent,
                             selectedIconColor = c.primary, selectedTextColor = c.onSurface,
                             unselectedIconColor = c.onSurfaceVariant, unselectedTextColor = c.onSurfaceVariant))
                 }
@@ -120,7 +128,7 @@ internal fun departmentIcon(id: String): ImageVector = when (id) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                 Text(d.name, style = MaterialTheme.typography.titleMedium)
                 Text(d.specialty, style = MaterialTheme.typography.bodyMedium, color = c.onSurfaceVariant)
-                Text("${d.years} years · ₹${d.fee} demo visit", style = MaterialTheme.typography.bodySmall, color = c.onSurfaceVariant)
+                Text("${d.years} years · ₹${d.fee} sample visit", style = MaterialTheme.typography.bodySmall, color = c.onSurfaceVariant)
             }
             Icon(if (selected) Icons.Default.CheckCircle else Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = c.primary)
         }

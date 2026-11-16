@@ -39,6 +39,7 @@ import java.util.concurrent.TimeUnit
     var busy by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("") }
     var showCare by remember { mutableStateOf(false) }
+    var showHistoryNotice by remember { mutableStateOf(false) }
     DisposableEffect(auth) {
         val listener = FirebaseAuth.AuthStateListener { user = it.currentUser }
         auth.addAuthStateListener(listener)
@@ -54,10 +55,27 @@ import java.util.concurrent.TimeUnit
             if (task.isSuccessful) code = ""
         }
     }
+    fun requestCode() {
+        if (activity == null) { message = "Unable to start phone verification. Please reopen the app."; return }
+        busy = true; message = ""
+        val callbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
+            override fun onVerificationCompleted(credential: PhoneAuthCredential) { signIn(credential) }
+            override fun onVerificationFailed(error: FirebaseException) { busy = false; message = "Could not send the code. Phone sign-in may not be available yet; check your connection and try again." }
+            override fun onCodeSent(id: String, token: PhoneAuthProvider.ForceResendingToken) { verificationId = id; busy = false; message = "Code sent. Check your messages." }
+        }
+        val options = PhoneAuthOptions.newBuilder(auth).setPhoneNumber(phone).setTimeout(60L, TimeUnit.SECONDS)
+            .setActivity(activity).setCallbacks(callbacks).build()
+        PhoneAuthProvider.verifyPhoneNumber(options)
+    }
+    if (showHistoryNotice) AlertDialog(onDismissRequest = { showHistoryNotice = false },
+        title = { Text("Your medical history") },
+        text = { Text("History sharing with doctors is not connected in this prototype. No history is shared by this screen. You'll be able to choose when the secure service is available.") },
+        confirmButton = { TextButton(onClick = { showHistoryNotice = false; requestCode() }) { Text("Continue") } },
+        dismissButton = { TextButton(onClick = { showHistoryNotice = false }) { Text("Not now") } })
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.safeDrawingPadding().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)) {
-            TextButton(onClick = onBack) { Text("Back to demo") }
+            TextButton(onClick = onBack) { Text("Back to prototype") }
             Text("FlowCare account", style = MaterialTheme.typography.headlineMedium)
             if (user != null) {
                 Text("Signed in", style = MaterialTheme.typography.titleLarge)
@@ -75,18 +93,7 @@ import java.util.concurrent.TimeUnit
                 Text("Your number is sent to Google for sign-in and abuse prevention. SMS charges may apply.", style = MaterialTheme.typography.bodySmall)
                 Button(onClick = {
                     if (!phone.matches(Regex("\\+[1-9][0-9]{7,14}"))) message = "Enter a phone number with its country code, for example +91."
-                    else if (activity == null) message = "Unable to start phone verification. Please reopen the app."
-                    else {
-                        busy = true; message = ""
-                        val callbacks = object : PhoneAuthProvider.OnVerificationStateChangedCallbacks() {
-                            override fun onVerificationCompleted(credential: PhoneAuthCredential) { signIn(credential) }
-                            override fun onVerificationFailed(error: FirebaseException) { busy = false; message = "Could not send the code. Phone sign-in may not be available yet; check your connection and try again." }
-                            override fun onCodeSent(id: String, token: PhoneAuthProvider.ForceResendingToken) { verificationId = id; busy = false; message = "Code sent. Check your messages." }
-                        }
-                        val options = PhoneAuthOptions.newBuilder(auth).setPhoneNumber(phone).setTimeout(60L, TimeUnit.SECONDS)
-                            .setActivity(activity).setCallbacks(callbacks).build()
-                        PhoneAuthProvider.verifyPhoneNumber(options)
-                    }
+                    else showHistoryNotice = true
                 }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(if (busy) "Please wait…" else "Send code") }
                 if (verificationId.isNotBlank()) {
                     OutlinedTextField(code, { code = it.filter(Char::isDigit).take(6) }, label = { Text("One-time code") },
@@ -117,8 +124,7 @@ import java.util.concurrent.TimeUnit
                 }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text("Continue with Google") }
             }
             if (message.isNotBlank()) Text(message, style = MaterialTheme.typography.bodyMedium)
-            Text("The offline demo is separate from your real account.", style = MaterialTheme.typography.bodySmall)
+            Text("The offline prototype is separate from your real account.", style = MaterialTheme.typography.bodySmall)
         }
     }
 }
-

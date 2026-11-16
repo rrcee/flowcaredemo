@@ -133,27 +133,27 @@ private data class Destination(val label:String,val icon:ImageVector)
    Surface(Modifier.fillMaxSize(),color=colors.background){
     Column(Modifier.safeDrawingPadding().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),verticalArrangement=Arrangement.spacedBy(20.dp)){
      Spacer(Modifier.height(16.dp));Image(painterResource(R.drawable.ic_launcher),contentDescription="$appName icon",modifier=Modifier.size(84.dp))
-     Text(if(signup)"Set up your demo profile" else "Welcome to $appName",style=type.headlineMedium)
+     Text(if(signup)"Set up your prototype profile" else "Welcome to $appName",style=type.headlineMedium)
      Image(painterResource(R.drawable.care_welcome),contentDescription=null,contentScale=ContentScale.Fit,
       modifier=Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(24.dp)).background(colors.primaryContainer))
      Text("St. Mathew Hospital",style=type.titleMedium)
-     Text("Offline demo. No real account or internet connection is needed.",style=type.bodyMedium)
+     Text("Offline prototype. No real account or internet connection is needed.",style=type.bodyMedium)
      if(appRole!="patient") {
      if(signup)OutlinedTextField(loginName,{loginName=it},label={Text("Full name")},singleLine=true,modifier=Modifier.fillMaxWidth())
      OutlinedTextField(email,{email=it},label={Text("Email address")},keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Email),singleLine=true,modifier=Modifier.fillMaxWidth())
-     OutlinedTextField(password,{password=it},label={Text("Demo password")},visualTransformation=PasswordVisualTransformation(),singleLine=true,modifier=Modifier.fillMaxWidth())
+     OutlinedTextField(password,{password=it},label={Text("Prototype password")},visualTransformation=PasswordVisualTransformation(),singleLine=true,modifier=Modifier.fillMaxWidth())
      if(loginError.isNotBlank())Text(loginError,color=colors.error)
-     Action(if(signup)"Create demo profile" else "Sign in to demo",primary=true){if(!email.contains("@")||password.length<4)loginError="Enter a valid email and a demo password of at least 4 characters." else {if(signup&&loginName.isNotBlank())prefs.edit().putString("name",loginName).apply();signIn()}}
+     Action(if(signup)"Create prototype profile" else "Sign in to prototype",primary=true){if(!email.contains("@")||password.length<4)loginError="Enter a valid email and a prototype password of at least 4 characters." else {if(signup&&loginName.isNotBlank())prefs.edit().putString("name",loginName).apply();signIn()}}
      }
-     Action("Use demo account"){signIn()}
+     Action("Explore prototype"){signIn()}
      OutlinedButton(onClick={showLiveAccount=true},modifier=Modifier.fillMaxWidth().heightIn(min=60.dp)){Text(if(appRole=="patient")"Sign in with phone" else "Manage a real account")}
-     if(appRole!="patient")TextButton(onClick={signup=!signup;loginError=""}){Text(if(signup)"Already have a demo profile? Sign in" else "Create a demo profile")}
-     Text("Do not enter a real password or medical information. This demo validates the form locally; it does not authenticate a real account.",style=type.bodyMedium)
+     if(appRole!="patient")TextButton(onClick={signup=!signup;loginError=""}){Text(if(signup)"Already have a prototype profile? Sign in" else "Create a prototype profile")}
+     Text("Do not enter a real password or medical information. This prototype validates the form locally; it does not authenticate a real account.",style=type.bodyMedium)
     }
    }
   } else Scaffold(
    containerColor=colors.background,
-   topBar={TopAppBar(title={Text(if(page.isBlank())appName else when(page){"book-hospital"->"Choose your care";"book-doctor"->"Choose a doctor";"book-time"->"Choose a time";"book-review"->"Review your visit";"visit"->"Visit details";"queue"->"Live queue";"family"->"Family members";"add-family"->"Add family member";"consultation"->"Consultation";"prescription"->"Care instructions";"success"->"Booking confirmed";"help"->"Help & support";"search"->"Find your care";"departments"->"Care departments";"department"->catalogDepartment.name;"doctors"->"Our doctors";"doctor-detail"->"Doctor profile";"clinician-switch"->"Demo clinician";else->"Settings"},style=type.titleMedium,maxLines=1,overflow=TextOverflow.Ellipsis)},navigationIcon={if(page.isNotBlank())IconButton(onClick={back()}){Icon(Icons.AutoMirrored.Filled.ArrowBack,"Back")}},actions={
+   topBar={TopAppBar(title={Text(if(page.isBlank())appName else when(page){"book-hospital"->"Choose your care";"book-doctor"->"Choose a doctor";"book-time"->"Choose a time";"book-review"->"Review your visit";"visit"->"Visit details";"queue"->"Live queue";"family"->"Family members";"add-family"->"Add family member";"consultation"->"Consultation";"prescription"->"Care instructions";"success"->"Booking confirmed";"help"->"Help & support";"search"->"Find your care";"departments"->"Care departments";"department"->catalogDepartment.name;"doctors"->"Our doctors";"doctor-detail"->"Doctor profile";"clinician-switch"->"Sample clinician";else->"Settings"},style=type.titleMedium,maxLines=1,overflow=TextOverflow.Ellipsis)},navigationIcon={if(page.isNotBlank())IconButton(onClick={back()}){Icon(Icons.AutoMirrored.Filled.ArrowBack,"Back")}},actions={
      IconButton(onClick={notify(data.optString("notice","No new updates"))}){Icon(Icons.Default.NotificationsNone,"Notifications")}
      Box {IconButton(onClick={menu=true}){Icon(Icons.Default.MoreVert,"More options")};DropdownMenu(menu,{menu=false}){
       if(appRole=="hospital")DropdownMenuItem(text={Text(if(role=="hospital")"Doctor workspace" else "Hospital workspace")},onClick={workspace=if(role=="hospital")"doctor" else "hospital";menu=false;page="";tab=0})
@@ -171,13 +171,13 @@ private data class Destination(val label:String,val icon:ImageVector)
      if(page.isBlank()) {
       when {
        shownTab==3 -> {
-        ProfileHero(when(role){"doctor"->clinician.name;"hospital"->"Hospital front desk";else->prefs.getString("name",null) ?: patient.optString("name")},prefs.getString("email",email) ?: email,"St. Mathew Hospital · offline demo")
+        ProfileHero(when(role){"doctor"->clinician.name;"hospital"->"Hospital front desk";else->prefs.getString("name",null) ?: patient.optString("name")},prefs.getString("email",email) ?: email,"St. Mathew Hospital · offline prototype")
         Heading("Your account",small=true)
-        if(role=="doctor")MenuRow("Demo clinician",clinician.specialty,Icons.Default.Badge){page="clinician-switch"}
+        if(role=="doctor")MenuRow("Sample clinician",clinician.specialty,Icons.Default.Badge){page="clinician-switch"}
         if(role=="patient")MenuRow("Family members","Manage who you book and pay for",Icons.Default.People){page="family"}
-        MenuRow("Settings","Appearance and demo data",Icons.Default.Settings){page="settings"}
-        MenuRow("Help & support","Understand the offline demo",Icons.Default.HelpOutline){page="help"}
-        Text(if(store.shared())"Shared demo data is available on this device." else "Local demo data. Install the Care Team app on this device to share visits with Patient.",style=type.bodyMedium)
+        MenuRow("Settings","Appearance and sample data",Icons.Default.Settings){page="settings"}
+        MenuRow("Help & support","About the prototype",Icons.Default.HelpOutline){page="help"}
+        Text(if(store.shared())"Shared sample data is available on this device." else "Local sample data. Install the Care Team app on this device to share visits with Patient.",style=type.bodyMedium)
         Action("Sign out"){logged=false;page="";tab=0;prefs.edit().putBoolean("logged",false).apply()}
        }
        role=="patient" && shownTab==0 -> {
@@ -207,7 +207,7 @@ private data class Destination(val label:String,val icon:ImageVector)
         val ids=myVisits.map{it.optString("id")}
         val bills=data.rows("bills").filter{it.optString("visit") in ids}
         val due=bills.filter{!it.optBoolean("paid")}.sumOf{it.optInt("amount")}
-        Info("₹$due pending","For ${patient.optString("name")} · demo payments only")
+        Info("₹$due pending","For ${patient.optString("name")} · simulated payments only")
         if(bills.isEmpty())Text("No bills yet. Charges will appear after booking or a doctor's order.")
         bills.forEach{bill->BillCard(bill){act(event("pay","id" to bill.optString("id")))}}
        }
@@ -217,14 +217,14 @@ private data class Destination(val label:String,val icon:ImageVector)
         Info(if(pausedFor(clinician.name))"Queue paused" else "Ready to see patients","${assignedVisits.count{it.optString("status")=="waiting"}} waiting · ${assignedVisits.count{it.optString("status")=="active"}} in consultation")
         Action(if(pausedFor(clinician.name))"Resume queue" else "Pause for an emergency"){act(event("pause","doctor" to clinician.name))}
         val queue=assignedVisits.filter{it.optString("status") in listOf("waiting","active")}
-        if(queue.isEmpty())Info("No patients waiting","Visits for ${clinician.name} appear here. Choose another demo clinician from Profile to view their queue.")
+        if(queue.isEmpty())Info("No patients waiting","Visits for ${clinician.name} appear here. Choose another sample clinician from Profile to view their queue.")
         queue.forEach{v->VisitCard(v){selected=v.optString("id");page="visit"}}
        }
        role=="doctor" && shownTab==1 -> {
         Heading("Patients")
         OutlinedTextField(patientSearch,{patientSearch=it},label={Text("Search patient or token")},leadingIcon={Icon(Icons.Default.Search,null)},singleLine=true,modifier=Modifier.fillMaxWidth())
         val results=assignedVisits.filter{patientSearch.isBlank()||it.optString("name").contains(patientSearch,true)||it.optInt("token").toString().contains(patientSearch)}
-        if(results.isEmpty())Text("No matching patients for this demo clinician.")
+        if(results.isEmpty())Text("No matching patients for this sample clinician.")
         results.reversed().forEach{v->VisitCard(v){selected=v.optString("id");page="visit"}}
        }
        role=="hospital" && shownTab==0 -> {
@@ -234,7 +234,7 @@ private data class Destination(val label:String,val icon:ImageVector)
         Action("Check in a patient",primary=true){tab=1}
         MenuRow("Department orders","Labs, pharmacy and billing status",Icons.Default.Assignment){tab=2}
         Heading("Recent appointments",small=true)
-        if(visits.isEmpty())Info("Ready for your first patient","Use the Patient app to book a demo visit on this device.")
+        if(visits.isEmpty())Info("Ready for your first patient","Use the Patient app to book a sample visit on this device.")
         visits.reversed().take(5).forEach{v->VisitCard(v){selected=v.optString("id");page="visit"}}
        }
        role=="hospital" && shownTab==1 -> {
@@ -265,7 +265,7 @@ private data class Destination(val label:String,val icon:ImageVector)
       }
       "departments" -> {
        Heading("Care, by department")
-       Text("Choose a clinic to see its services and fictional demo doctors.")
+       Text("Choose a clinic to see its services and fictional sample doctors.")
        DepartmentTiles(CareCatalog.departments){openDepartment(it,"departments")}
       }
       "department" -> {
@@ -279,7 +279,7 @@ private data class Destination(val label:String,val icon:ImageVector)
        CareCatalog.doctors.filter{it.departmentId==catalogDepartment.id}.forEach{d->DoctorPreview(d){openDoctor(d,"department")}}
        Action("View ${catalogDepartment.name.lowercase()} doctors",primary=true){browseDepartment=catalogDepartment.id;doctorListParent="department";page="doctors"}
        if(catalogDepartment.id=="mind")Action("Try a grounding exercise"){page="calm"}
-       Text("Fictional department and clinician profiles for the offline demo.",style=type.bodySmall)
+       Text("Fictional department and clinician profiles for the offline prototype.",style=type.bodySmall)
       }
       "doctors" -> {
        Heading("Find your doctor")
@@ -296,20 +296,20 @@ private data class Destination(val label:String,val icon:ImageVector)
          Text(catalogDoctor.name,style=type.titleLarge);Text(catalogDoctor.specialty,style=type.bodyLarge)
         }
        }
-       Info("About this demo clinician","${catalogDoctor.years} years of sample experience\nSt. Mathew Hospital · ${CareCatalog.department(catalogDoctor.departmentId).name}")
+       Info("About this sample clinician","${catalogDoctor.years} years of sample experience\nSt. Mathew Hospital · ${CareCatalog.department(catalogDoctor.departmentId).name}")
        Info("Consultation fee","₹${catalogDoctor.fee} + ₹100 registration\nDemo charges only; no real payment is processed.")
        Action("Book ${catalogDoctor.name.removePrefix("Dr. ").substringBefore(' ')}",primary=true){doctor=catalogDoctor.name;department=catalogDoctor.specialty;page="book-hospital"}
-       Text("All clinicians are fictional. Initials identify demo profiles; they are not verified medical providers.",style=type.bodySmall)
+       Text("All clinicians are fictional. Initials identify sample profiles; they are not verified medical providers.",style=type.bodySmall)
       }
       "clinician-switch" -> {
-       Heading("Choose the demo clinician")
+       Heading("Choose the sample clinician")
        Text("The Doctor app shows only this clinician's patients and orders.")
        CareCatalog.doctors.forEach{d->DoctorPreview(d,clinicianId==d.id){clinicianId=d.id;prefs.edit().putString("clinician",d.id).apply();page="";tab=0}}
       }
 
       "book-hospital" -> {
        Text("Step 1 of 3 · Hospital & doctor",style=type.labelLarge,color=colors.primary)
-       Info("St. Mathew Hospital","Demo hospital · Main outpatient department")
+       Info("St. Mathew Hospital","Sample hospital · Main outpatient department")
        Text("Who is this visit for?",style=type.titleMedium)
        patients.forEach{p->Choice(p.optString("name"),p.optString("relation"),patientId==p.optString("id")){patientId=p.optString("id")}}
        Heading("Choose a department",small=true)
@@ -319,14 +319,14 @@ private data class Destination(val label:String,val icon:ImageVector)
       "book-doctor" -> {
        Text("Step 1 of 3 · Choose your doctor",style=type.labelLarge)
        CareCatalog.doctors.filter{it.departmentId==selectedDoctor.departmentId}.forEach{d->DoctorPreview(d,doctor==d.name){doctor=d.name;department=d.specialty}}
-       Text("All doctors and profiles are fictional demo data.")
+       Text("All doctors and profiles are fictional sample data.")
        Action("Choose appointment time",primary=true){page="book-time"}
       }
       "book-time" -> {
        Text("Step 2 of 3 · Date & time",style=type.labelLarge)
        Heading("When would you like to visit?")
        Action("Date: $date"){showDate=true}
-       Text("Available demo times",style=type.titleMedium)
+       Text("Available sample times",style=type.titleMedium)
        FlowRow(horizontalArrangement=Arrangement.spacedBy(10.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){
         listOf("09:30 AM","10:00 AM","10:30 AM","11:00 AM","02:00 PM","03:00 PM").forEach{slot->FilterChip(selected=time==slot,onClick={time=slot},label={Text(slot)},modifier=Modifier.heightIn(min=56.dp))}
        }
@@ -336,8 +336,8 @@ private data class Destination(val label:String,val icon:ImageVector)
        Text("Step 3 of 3 · Review & confirm",style=type.labelLarge)
        Info(patient.optString("name"),"$doctor\n$department\n$date · $time\nSt. Mathew Hospital")
        Info("Visit charges","Registration ₹100 · Consultation ₹${selectedDoctor.fee}\nTotal ₹${100+selectedDoctor.fee} · simulated charges only")
-       Text("No money is charged. Registration is marked paid in the demo; consultation appears in Bills.")
-       Action("Confirm demo booking",primary=true){val previous=data.optString("lastVisit");act(event("book","patient" to patientId,"doctor" to doctor,"department" to department,"date" to date,"time" to time));if(data.optString("lastVisit")!=previous){selected=data.optString("lastVisit");page="success"}}
+       Text("No money is charged. Registration is marked paid in the prototype; consultation appears in Bills.")
+       Action("Confirm sample booking",primary=true){val previous=data.optString("lastVisit");act(event("book","patient" to patientId,"doctor" to doctor,"department" to department,"date" to date,"time" to time));if(data.optString("lastVisit")!=previous){selected=data.optString("lastVisit");page="success"}}
       }
       "success" -> {
        Icon(Icons.Default.CheckCircle,null,tint=colors.primary,modifier=Modifier.size(60.dp))
@@ -372,22 +372,22 @@ private data class Destination(val label:String,val icon:ImageVector)
        Heading(when(visit.optString("status")){"active"->"It's your turn";"complete"->"Visit complete";else->"${visit.optInt("ahead")} patients before you"})
        Info("Token #${visit.optInt("token")}",if(pausedFor(visit.optString("doctor")))"Doctor attending an emergency. Your wait estimate is paused." else if(visit.optString("status")=="complete")"Your consultation is complete." else if(visit.optString("status")=="active")"Please proceed to the consultation room." else "About ${visit.optInt("ahead")*7} minutes · an estimate, not a guarantee")
        Text("${visit.optString("doctor")}\nSt. Mathew Hospital · Outpatient room 2")
-       Info("You can wait nearby","Keep the app open for updates. Background arrival notifications are not enabled in this demo.")
+       Info("You can wait nearby","Keep the app open for updates. Background arrival notifications are not enabled in this prototype.")
        Action("View appointment"){page="visit"}
-       if(!store.shared())Action("Demo: move queue forward"){act(event("advance","id" to selected))}
+       if(!store.shared())Action("Sample: move queue forward"){act(event("advance","id" to selected))}
       }
       "consultation" -> if(visit!=null){
        VisitSummary(visit)
        Action("Order blood test"){act(event("order","id" to selected,"department" to "Blood test"))}
        Action("Order pharmacy items"){act(event("order","id" to selected,"department" to "Pharmacy"))}
-       OutlinedTextField(carePlan,{carePlan=it},label={Text("Demo care instructions")},supportingText={Text("Fictional notes only. Do not enter real medical information.")},minLines=4,modifier=Modifier.fillMaxWidth())
+       OutlinedTextField(carePlan,{carePlan=it},label={Text("Sample care instructions")},supportingText={Text("Fictional notes only. Do not enter real medical information.")},minLines=4,modifier=Modifier.fillMaxWidth())
        Action("Share care instructions",primary=true,enabled=carePlan.isNotBlank()){act(event("prescribe","id" to selected,"text" to carePlan.trim()));carePlan=""}
        Action("Complete consultation"){act(event("complete","id" to selected));page="";tab=0}
       }
       "prescription" -> {
        Heading("After your visit")
        val rx=data.rows("prescriptions").find{it.optString("visit")==selected}
-       if(rx==null)Info("No instructions yet","Your clinician's demo notes will appear here when shared.") else Info(rx.optString("doctor"),rx.optString("text"))
+       if(rx==null)Info("No instructions yet","Your clinician's sample notes will appear here when shared.") else Info(rx.optString("doctor"),rx.optString("text"))
        if(role=="patient")Action("View bills"){page="";tab=2}
       }
       "family" -> {
@@ -412,8 +412,15 @@ private data class Destination(val label:String,val icon:ImageVector)
         }
        }
        Info("Text size","This app follows Android's text-size setting. Use your device Accessibility settings for larger text.")
-       Info("Offline, on this device",if(store.shared())"Patient and Care Team share demo data on this device. HQ never opens clinical records. No server is involved." else "This app works on its own. Install the Hospital app to share visits with the other demo apps on this device.")
-       Action("Reset demo data"){act(event("reset"));selected="";patientId="self"}
+       if(role=="patient") Surface(shape=RoundedCornerShape(24.dp),color=colors.surface,border=BorderStroke(1.dp,colors.outlineVariant),modifier=Modifier.fillMaxWidth()){
+        Row(Modifier.padding(20.dp),horizontalArrangement=Arrangement.spacedBy(14.dp),verticalAlignment=Alignment.CenterVertically){
+         Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){Text("Share history with doctors",style=type.titleSmall);Text("Available when secure history sharing is connected.",style=type.bodySmall,color=colors.onSurfaceVariant)}
+         Switch(checked=false,onCheckedChange=null,enabled=false)
+        }
+       }
+       Info("Offline, on this device",if(store.shared())"Patient and Care Team share sample data on this device. HQ never opens clinical records. No server is involved." else "This app works on its own. Install the Hospital app to share visits with the other prototype apps on this device.")
+       Info("About FlowCare","Prototype app built with love by Rishi, Irfan, Joshua and Mathew.")
+       Action("Reset sample data"){act(event("reset"));selected="";patientId="self"}
       }
       "calm" -> {
        Heading("Take a quiet moment")
@@ -422,7 +429,7 @@ private data class Destination(val label:String,val icon:ImageVector)
        Action("Return home",primary=true){page="";tab=0}
       }
       else -> {
-       Heading("About this demo")
+       Heading("About this prototype")
        Info("St. Mathew Hospital","A fictional hospital for demonstrating connected care. All patient and staff profiles are sample data.")
        Text("Install Patient and Care Team from the same release on one device to demonstrate the care journey. Care Team contains the hospital and doctor workspaces. HQ is a separate operational app without patient-record access.")
        Text("Sign-in and payments are simulated. There is no live hospital connection, online consultation, medical advice service or emergency dispatch.")
@@ -435,7 +442,7 @@ private data class Destination(val label:String,val icon:ImageVector)
    }
   }
   if(showDate){val dateState=rememberDatePickerState(initialSelectedDateMillis=LocalDate.parse(date).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli());DatePickerDialog(onDismissRequest={showDate=false},confirmButton={TextButton(onClick={dateState.selectedDateMillis?.let{date=Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate().toString()};showDate=false}){Text("Choose date")}},dismissButton={TextButton(onClick={showDate=false}){Text("Cancel")}}){DatePicker(state=dateState)}}
-  if(cancelConfirm)AlertDialog(onDismissRequest={cancelConfirm=false},title={Text("Cancel this appointment?")},text={Text("The demo booking will be cancelled and unpaid charges removed.")},confirmButton={TextButton(onClick={act(event("cancel","id" to selected));cancelConfirm=false;page="";tab=1}){Text("Cancel appointment")}},dismissButton={TextButton(onClick={cancelConfirm=false}){Text("Keep appointment")}})
+  if(cancelConfirm)AlertDialog(onDismissRequest={cancelConfirm=false},title={Text("Cancel this appointment?")},text={Text("The sample booking will be cancelled and unpaid charges removed.")},confirmButton={TextButton(onClick={act(event("cancel","id" to selected));cancelConfirm=false;page="";tab=1}){Text("Cancel appointment")}},dismissButton={TextButton(onClick={cancelConfirm=false}){Text("Keep appointment")}})
  }
 }
 @Composable private fun Heading(text:String,small:Boolean=false){Text(text,style=if(small)MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineMedium,modifier=Modifier.semantics{heading()})}
@@ -448,6 +455,5 @@ private data class Destination(val label:String,val icon:ImageVector)
 @Composable private fun Choice(title:String,subtitle:String,selected:Boolean,onClick:()->Unit){Surface(onClick=onClick,shape=RoundedCornerShape(18.dp),color=if(selected)MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,border=BorderStroke(if(selected)2.dp else 1.dp,if(selected)MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),modifier=Modifier.fillMaxWidth()){Row(Modifier.padding(16.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text(title,style=MaterialTheme.typography.titleMedium);Text(subtitle,style=MaterialTheme.typography.bodyMedium)};RadioButton(selected,onClick=null)}}}
 @Composable private fun VisitCard(v:JSONObject,onClick:()->Unit){MenuRow(v.optString("name"),"${v.optString("doctor")}\n${v.optString("date")} · ${v.optString("time")}\n${v.optString("status").replaceFirstChar{it.uppercase()}} · #${v.optInt("token")}",Icons.Default.CalendarMonth,onClick)}
 @Composable private fun VisitSummary(v:JSONObject){Heading(v.optString("name"));Info(v.optString("doctor"),"${v.optString("department")}\n${v.optString("date")} · ${v.optString("time")}\nSt. Mathew Hospital\n${v.optString("status").replaceFirstChar{it.uppercase()}} · Token #${v.optInt("token")}")}
-@Composable private fun BillCard(b:JSONObject,onPay:()->Unit){Column(verticalArrangement=Arrangement.spacedBy(10.dp)){Info(b.optString("department"),"₹${b.optInt("amount")} · ${if(b.optBoolean("paid"))"Paid" else "Payment pending"}${if(b.optBoolean("ready"))" · Ready for collection" else ""}");if(!b.optBoolean("paid"))Action("Pay ₹${b.optInt("amount")} in demo",primary=true,onClick=onPay)}}
-@Composable private fun Pass(v:JSONObject){val image=remember(v.optString("id")){val bits=MultiFormatWriter().encode("flowcare-demo:${v.optString("id")}",BarcodeFormat.QR_CODE,256,256);Bitmap.createBitmap(256,256,Bitmap.Config.ARGB_8888).apply{for(y in 0..255)for(x in 0..255)setPixel(x,y,if(bits[x,y])android.graphics.Color.BLACK else android.graphics.Color.WHITE)}.asImageBitmap()};Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(10.dp)){Image(image,"Demo appointment QR pass",modifier=Modifier.size(180.dp).background(Color.White));Text("Pass ${v.optString("id")} · Token #${v.optInt("token")}",style=MaterialTheme.typography.bodyMedium)}}
-
+@Composable private fun BillCard(b:JSONObject,onPay:()->Unit){Column(verticalArrangement=Arrangement.spacedBy(10.dp)){Info(b.optString("department"),"₹${b.optInt("amount")} · ${if(b.optBoolean("paid"))"Paid" else "Payment pending"}${if(b.optBoolean("ready"))" · Ready for collection" else ""}");if(!b.optBoolean("paid"))Action("Pay ₹${b.optInt("amount")} in prototype",primary=true,onClick=onPay)}}
+@Composable private fun Pass(v:JSONObject){val image=remember(v.optString("id")){val bits=MultiFormatWriter().encode("flowcare-demo:${v.optString("id")}",BarcodeFormat.QR_CODE,256,256);Bitmap.createBitmap(256,256,Bitmap.Config.ARGB_8888).apply{for(y in 0..255)for(x in 0..255)setPixel(x,y,if(bits[x,y])android.graphics.Color.BLACK else android.graphics.Color.WHITE)}.asImageBitmap()};Column(Modifier.fillMaxWidth(),horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(10.dp)){Image(image,"Sample appointment QR pass",modifier=Modifier.size(180.dp).background(Color.White));Text("Pass ${v.optString("id")} · Token #${v.optInt("token")}",style=MaterialTheme.typography.bodyMedium)}}

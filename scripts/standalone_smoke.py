@@ -11,7 +11,6 @@ tap('Book an appointment', True)
 tap('Continue', True)
 tap('Choose appointment time', True)
 tap('Review appointment', True)
-tap('Confirm demo booking', True)
+tap('Confirm sample booking', True)
 find("You're booked")
 print('PASS: patient launches and books in standalone mode without Care Team installed.')
-

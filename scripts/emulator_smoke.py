@@ -24,7 +24,7 @@ def tapnode(n):
 def tap(text,scroll=False):tapnode(find(text,scroll=scroll))
 def launch(role,first=False):
  adb('shell','am','start','-n',f'com.flowcare.demo.{role}/com.flowcare.MainActivity')
- if first:tap('Use demo account',scroll=True)
+ if first:tap('Explore prototype',scroll=True)
 def dashboard(role):
  launch(role)
  for _ in range(4):
@@ -41,7 +41,7 @@ sys.excepthook=fail
 adb('shell','svc','wifi','disable');adb('shell','svc','data','disable')
 launch('hospital',True);find('Hospital overview');screen('01-hospital-overview')
 launch('patient');tap('Sign in with phone',True);find('FlowCare account');find('Phone number',scroll=True);screen('02-account-entry')
-adb('shell','input','keyevent','KEYCODE_BACK');tap('Use demo account',True);find('Hello, Maya');screen('02-patient-home')
+adb('shell','input','keyevent','KEYCODE_BACK');tap('Explore prototype',True);find('Hello, Maya');screen('02-patient-home')
 tap('Family');find('Who are you caring for?');adb('shell','input','keyevent','KEYCODE_BACK');find('Hello, Maya')
 tap('Search doctors or departments')
 fields=[n for n in nodes() if n.get('class')=='android.widget.EditText']
@@ -51,7 +51,7 @@ tap('Dr. Neha Joseph',True);find('Book Neha',scroll=True);screen('02a-doctor-pro
 adb('shell','input','keyevent','KEYCODE_BACK');find('Find the care you need');adb('shell','input','keyevent','KEYCODE_BACK');find('Hello, Maya')
 tap('See all',True);tap('Heart care',True);find('Care at this clinic',scroll=True);screen('02b-department-detail')
 adb('shell','input','keyevent','KEYCODE_BACK');adb('shell','input','keyevent','KEYCODE_BACK');find('Hello, Maya')
-tap('Book an appointment',True);tap('Continue',True);tap('Choose appointment time',True);tap('Review appointment',True);screen('03-booking-review');tap('Confirm demo booking',True)
+tap('Book an appointment',True);tap('Continue',True);tap('Choose appointment time',True);tap('Review appointment',True);screen('03-booking-review');tap('Confirm sample booking',True)
 find("You're booked");tap('Go to home',True);find('Your next visit',scroll=True);screen('03a-upcoming-visit');tap('View appointment',True);find('Check in');screen('04-patient-pass')
 # Hospital sees the patient booking without any server.
 launch('hospital');tap('Check-in');tap('Maya Mathew',True);tap('Check in',True);screen('05-hospital-checkin')
@@ -62,7 +62,7 @@ if not fields:down();fields=[n for n in nodes() if n.get('class')=='android.widg
 assert fields,'Care-plan field is missing'
 tapnode(fields[0]);adb('shell','input','text','Fictional%sdemo%scare%splan')
 adb('shell','input','keyevent','KEYCODE_BACK');tap('Share care instructions',True);screen('06-doctor-consultation');tap('Complete consultation',True)
-dashboard('patient');tap('Bills');find('Blood test',scroll=True);screen('07-patient-bills');tap('Pay ₹450 in demo',True)
+dashboard('patient');tap('Bills');find('Blood test',scroll=True);screen('07-patient-bills');tap('Pay ₹450 in prototype',True)
 # Fulfillment sees the simulated payment.
 dashboard('hospital');tap('More options');tap('Hospital workspace');tap('Orders');find('Blood test');screen('08-hospital-orders');tap('Mark Blood test ready',True)
 launch('patient');tap('Visits');tap('Maya Mathew',True);tap('View care instructions',True);find('Fictional demo care plan');screen('09-patient-aftercare')
@@ -72,4 +72,3 @@ print('PASS: offline patient booking → hospital check-in → doctor consultati
 
 launch('hq');find('HQ control');tap('Notifications');find('Remote service not connected');screen('12-hq-notifications')
 tap('Settings');tap('Manage a real account',True);find('FlowCare account');adb('shell','input','keyevent','KEYCODE_BACK');find('Connection & privacy')
-

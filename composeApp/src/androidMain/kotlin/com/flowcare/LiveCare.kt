@@ -145,7 +145,7 @@ internal fun LiveCare(user: FirebaseUser, staffApp: Boolean, onBack: () -> Unit)
                                 }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(label) }
                             }
                         }
-                        Text("Orders and demo billing", style = MaterialTheme.typography.titleLarge)
+                        Text("Orders and simulated billing", style = MaterialTheme.typography.titleLarge)
                         Text("Payments here are simulated; no money is collected.", style = MaterialTheme.typography.bodyMedium)
                         if (orders.isEmpty() && !busy) Text("No orders have been added.")
                         orders.forEach { order ->
@@ -154,10 +154,10 @@ internal fun LiveCare(user: FirebaseUser, staffApp: Boolean, onBack: () -> Unit)
                             Card(Modifier.fillMaxWidth()) {
                                 Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Text(order["label"] as? String ?: "Order", style = MaterialTheme.typography.titleMedium)
-                                    Text("₹${order["amount"] ?: 0} · ${when (orderStatus) { "paid_demo" -> "Demo payment recorded"; "ready" -> "Ready"; else -> "Demo payment pending" }}")
+                                    Text("₹${order["amount"] ?: 0} · ${when (orderStatus) { "paid_demo" -> "Simulated payment recorded"; "ready" -> "Ready"; else -> "Simulated payment pending" }}")
                                     if (role == "patient" && orderStatus == "pending") Button(onClick = {
                                         call("updateDemoOrder", mapOf("visitId" to detailVisitId, "orderId" to orderId, "status" to "paid_demo")) { loadDetails(detailVisitId) }
-                                    }, enabled = !busy) { Text("Record demo payment") }
+                                    }, enabled = !busy) { Text("Record simulated payment") }
                                     if (role == "hospital" && orderStatus == "paid_demo") Button(onClick = {
                                         call("updateDemoOrder", mapOf("visitId" to detailVisitId, "orderId" to orderId, "status" to "ready")) { loadDetails(detailVisitId) }
                                     }, enabled = !busy) { Text("Mark ready") }
