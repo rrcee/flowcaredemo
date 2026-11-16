@@ -24,7 +24,9 @@ def tapnode(n):
 def tap(text,scroll=False):tapnode(find(text,scroll=scroll))
 def launch(role,first=False):
  adb('shell','am','start','-n',f'com.flowcare.demo.{role}/com.flowcare.MainActivity')
- if first:tap('Explore prototype',scroll=True)
+ if first:
+  tap('Explore prototype',scroll=True)
+  if role=='patient':tap('Skip for now',scroll=True)
 def dashboard(role):
  launch(role)
  for _ in range(4):
@@ -41,7 +43,7 @@ sys.excepthook=fail
 adb('shell','svc','wifi','disable');adb('shell','svc','data','disable')
 launch('hospital',True);find('Hospital overview');screen('01-hospital-overview')
 launch('patient');tap('Sign in with phone',True);find('FlowCare account');find('Phone number',scroll=True);screen('02-account-entry')
-adb('shell','input','keyevent','KEYCODE_BACK');tap('Explore prototype',True);find('Hello, Maya');screen('02-patient-home')
+adb('shell','input','keyevent','KEYCODE_BACK');tap('Explore prototype',True);tap('Skip for now',True);find('Hello, Maya');screen('02-patient-home')
 tap('Family');find('Who are you caring for?');adb('shell','input','keyevent','KEYCODE_BACK');find('Hello, Maya')
 tap('Search doctors or departments')
 fields=[n for n in nodes() if n.get('class')=='android.widget.EditText']

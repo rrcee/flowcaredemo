@@ -59,6 +59,7 @@ private data class Destination(val label:String,val icon:ImageVector)
  val store=remember {DemoStore(context)}
  var data by remember {mutableStateOf(store.read())}
  var logged by rememberSaveable {mutableStateOf(prefs.getBoolean("logged",false))}
+ var setupDone by rememberSaveable {mutableStateOf(prefs.getBoolean("prototype_setup",false))}
  var showLiveAccount by rememberSaveable {mutableStateOf(false)}
  var signup by rememberSaveable {mutableStateOf(false)}
  var email by rememberSaveable {mutableStateOf(when(role){"doctor"->"doctor@flowcare.demo";"hospital"->"desk@stmathew.demo";else->"maya@flowcare.demo"})}
@@ -151,6 +152,8 @@ private data class Destination(val label:String,val icon:ImageVector)
      Text("Do not enter a real password or medical information. This prototype validates the form locally; it does not authenticate a real account.",style=type.bodyMedium)
     }
    }
+  } else if(role=="patient" && !setupDone) {
+   PrototypeOnboarding { name -> if(name.isNotBlank())prefs.edit().putString("name",name).apply();prefs.edit().putBoolean("prototype_setup",true).apply();setupDone=true }
   } else Scaffold(
    containerColor=colors.background,
    topBar={TopAppBar(title={Text(if(page.isBlank())appName else when(page){"book-hospital"->"Choose your care";"book-doctor"->"Choose a doctor";"book-time"->"Choose a time";"book-review"->"Review your visit";"visit"->"Visit details";"queue"->"Live queue";"family"->"Family members";"add-family"->"Add family member";"consultation"->"Consultation";"prescription"->"Care instructions";"success"->"Booking confirmed";"help"->"Help & support";"search"->"Find your care";"departments"->"Care departments";"department"->catalogDepartment.name;"doctors"->"Our doctors";"doctor-detail"->"Doctor profile";"clinician-switch"->"Sample clinician";else->"Settings"},style=type.titleMedium,maxLines=1,overflow=TextOverflow.Ellipsis)},navigationIcon={if(page.isNotBlank())IconButton(onClick={back()}){Icon(Icons.AutoMirrored.Filled.ArrowBack,"Back")}},actions={
