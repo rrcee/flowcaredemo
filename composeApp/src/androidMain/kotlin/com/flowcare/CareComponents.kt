@@ -87,7 +87,7 @@ internal fun departmentIcon(id: String): ImageVector = when (id) {
             Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 row.forEach { department ->
                     Surface(onClick = { onSelect(department) }, modifier = Modifier.weight(1f).fillMaxHeight(),
-                        shape = RoundedCornerShape(24.dp), color = c.surface) {
+                        shape = RoundedCornerShape(24.dp), color = c.surface, border = BorderStroke(1.dp, c.outlineVariant)) {
                         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Icon(departmentIcon(department.id), null, tint = c.primary,
                                 modifier = Modifier.background(c.primaryContainer, RoundedCornerShape(14.dp)).padding(12.dp).size(26.dp))
@@ -109,7 +109,7 @@ internal fun departmentIcon(id: String): ImageVector = when (id) {
     val c = MaterialTheme.colorScheme
     val largeText = LocalDensity.current.fontScale > 1.2f
     Surface(onClick = onClick, color = if (selected) c.secondaryContainer else c.surface,
-        shape = RoundedCornerShape(24.dp), border = if (selected) BorderStroke(2.dp, c.primary) else null,
+        shape = RoundedCornerShape(24.dp), border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) c.primary else c.outlineVariant),
         modifier = Modifier.fillMaxWidth()) {
         Row(Modifier.padding(18.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             if (!largeText) Surface(shape = RoundedCornerShape(20.dp), color = c.primaryContainer) {
@@ -139,7 +139,9 @@ internal fun departmentIcon(id: String): ImageVector = when (id) {
                     "waiting" -> "You're checked in"
                     else -> "Your next visit"
                 }, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f).semantics { heading() })
-                Icon(Icons.Default.EventAvailable, null, modifier = Modifier.size(32.dp))
+                Surface(shape = RoundedCornerShape(18.dp), color = c.primary, contentColor = c.onPrimary) {
+                    Icon(Icons.Default.EventAvailable, null, modifier = Modifier.padding(12.dp).size(28.dp))
+                }
             }
             if (current == null) {
                 Text("Find your doctor and plan a visit at St. Mathew Hospital.", style = MaterialTheme.typography.bodyLarge)
@@ -181,10 +183,10 @@ internal fun departmentIcon(id: String): ImageVector = when (id) {
             Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 row.forEach { (label, icon, action) ->
                     Surface(onClick = action, shape = RoundedCornerShape(22.dp), color = c.surface,
-                        shadowElevation = 1.dp, modifier = Modifier.weight(1f).fillMaxHeight()) {
+                        border = BorderStroke(1.dp, c.outlineVariant), shadowElevation = 2.dp, modifier = Modifier.weight(1f).fillMaxHeight()) {
                         Column(Modifier.padding(vertical = 18.dp, horizontal = 10.dp), horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Icon(icon, null, tint = c.primary)
+                            Icon(icon, null, tint = c.primary, modifier = Modifier.background(c.primaryContainer, RoundedCornerShape(14.dp)).padding(10.dp).size(24.dp))
                             Text(label, style = MaterialTheme.typography.labelLarge)
                         }
                     }

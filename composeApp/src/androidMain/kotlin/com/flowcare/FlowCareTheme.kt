@@ -27,15 +27,15 @@ internal fun flowCareColors(dark: Boolean = false): ColorScheme = if (dark) {
     )
 } else {
     lightColorScheme(
-        primary = Color(0xFF145B73), onPrimary = Color.White,
-        primaryContainer = Color(0xFFD9EFF9), onPrimaryContainer = Color(0xFF153E50),
-        secondary = Color(0xFF176B5C), onSecondary = Color.White,
-        secondaryContainer = Color(0xFFDDF3EB), onSecondaryContainer = Color(0xFF164C41),
-        background = Color(0xFFFFFAF1), onBackground = Color(0xFF142F3E),
+        primary = Color(0xFF115B85), onPrimary = Color.White,
+        primaryContainer = Color(0xFFCBE9F8), onPrimaryContainer = Color(0xFF103D57),
+        secondary = Color(0xFF22667F), onSecondary = Color.White,
+        secondaryContainer = Color(0xFFE2F1F4), onSecondaryContainer = Color(0xFF164559),
+        background = Color(0xFFF9F3E7), onBackground = Color(0xFF142F3E),
         surface = Color(0xFFFFFEFB), onSurface = Color(0xFF142F3E),
         surfaceVariant = Color(0xFFE6F0F5), onSurfaceVariant = Color(0xFF49616E),
-        outline = Color(0xFF708792), outlineVariant = Color(0xFFCEDFE6),
-        surfaceTint = Color(0xFF145B73),
+        outline = Color(0xFF637D89), outlineVariant = Color(0xFFBCD0D8),
+        surfaceTint = Color(0xFF115B85),
     )
 }
 
