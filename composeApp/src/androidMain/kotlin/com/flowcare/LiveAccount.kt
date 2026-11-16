@@ -25,6 +25,10 @@ import kotlinx.coroutines.launch
 /** Account access is isolated from the offline demo until live clinical services are ready. */
 @Composable
 internal fun LiveAccount(onBack: () -> Unit, allowPatientRegistration: Boolean = true, allowLiveCare: Boolean = true) {
+    if (allowPatientRegistration) {
+        PatientPhoneAccount(onBack)
+        return
+    }
     val auth = remember { FirebaseAuth.getInstance() }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -151,3 +155,4 @@ internal fun LiveAccount(onBack: () -> Unit, allowPatientRegistration: Boolean =
         }
     }
 }
+

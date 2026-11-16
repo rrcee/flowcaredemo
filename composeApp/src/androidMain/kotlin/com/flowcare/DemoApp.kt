@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import android.database.ContentObserver
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -137,14 +138,16 @@ private data class Destination(val label:String,val icon:ImageVector)
       modifier=Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(24.dp)).background(colors.primaryContainer))
      Text("St. Mathew Hospital",style=type.titleMedium)
      Text("Offline demo. No real account or internet connection is needed.",style=type.bodyMedium)
+     if(appRole!="patient") {
      if(signup)OutlinedTextField(loginName,{loginName=it},label={Text("Full name")},singleLine=true,modifier=Modifier.fillMaxWidth())
      OutlinedTextField(email,{email=it},label={Text("Email address")},keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Email),singleLine=true,modifier=Modifier.fillMaxWidth())
      OutlinedTextField(password,{password=it},label={Text("Demo password")},visualTransformation=PasswordVisualTransformation(),singleLine=true,modifier=Modifier.fillMaxWidth())
      if(loginError.isNotBlank())Text(loginError,color=colors.error)
      Action(if(signup)"Create demo profile" else "Sign in to demo",primary=true){if(!email.contains("@")||password.length<4)loginError="Enter a valid email and a demo password of at least 4 characters." else {if(signup&&loginName.isNotBlank())prefs.edit().putString("name",loginName).apply();signIn()}}
+     }
      Action("Use demo account"){signIn()}
-     OutlinedButton(onClick={showLiveAccount=true},modifier=Modifier.fillMaxWidth().heightIn(min=60.dp)){Text("Manage a real account")}
-     TextButton(onClick={signup=!signup;loginError=""}){Text(if(signup)"Already have a demo profile? Sign in" else "Create a demo profile")}
+     OutlinedButton(onClick={showLiveAccount=true},modifier=Modifier.fillMaxWidth().heightIn(min=60.dp)){Text(if(appRole=="patient")"Sign in with phone" else "Manage a real account")}
+     if(appRole!="patient")TextButton(onClick={signup=!signup;loginError=""}){Text(if(signup)"Already have a demo profile? Sign in" else "Create a demo profile")}
      Text("Do not enter a real password or medical information. This demo validates the form locally; it does not authenticate a real account.",style=type.bodyMedium)
     }
    }
@@ -162,11 +165,12 @@ private data class Destination(val label:String,val icon:ImageVector)
    bottomBar={if(page.isBlank())FlowCareDock(destinations.map{it.label to it.icon},tab){tab=it}},
    snackbarHost={SnackbarHost(snack)}
   ){padding->
+   Crossfade(targetState=tab,label="navigation transition") { shownTab ->
    LazyColumn(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding(),state=listState,contentPadding=PaddingValues(22.dp),verticalArrangement=Arrangement.spacedBy(18.dp)){
     item {Column(verticalArrangement=Arrangement.spacedBy(18.dp)){
      if(page.isBlank()) {
       when {
-       tab==3 -> {
+       shownTab==3 -> {
         ProfileHero(when(role){"doctor"->clinician.name;"hospital"->"Hospital front desk";else->prefs.getString("name",null) ?: patient.optString("name")},prefs.getString("email",email) ?: email,"St. Mathew Hospital · offline demo")
         Heading("Your account",small=true)
         if(role=="doctor")MenuRow("Demo clinician",clinician.specialty,Icons.Default.Badge){page="clinician-switch"}
@@ -176,7 +180,7 @@ private data class Destination(val label:String,val icon:ImageVector)
         Text(if(store.shared())"Shared demo data is available on this device." else "Local demo data. Install the Care Team app on this device to share visits with Patient.",style=type.bodyMedium)
         Action("Sign out"){logged=false;page="";tab=0;prefs.edit().putBoolean("logged",false).apply()}
        }
-       role=="patient" && tab==0 -> {
+       role=="patient" && shownTab==0 -> {
         Heading("Hello, ${patient.optString("name").substringBefore(' ')}")
         Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween,verticalAlignment=Alignment.CenterVertically){
          Row(Modifier.weight(1f),horizontalArrangement=Arrangement.spacedBy(6.dp),verticalAlignment=Alignment.CenterVertically){Icon(Icons.Default.LocationOn,null,tint=colors.primary,modifier=Modifier.size(18.dp));Text("St. Mathew Hospital",style=type.bodySmall)}
@@ -191,14 +195,14 @@ private data class Destination(val label:String,val icon:ImageVector)
         CareCatalog.doctors.take(2).forEach{d->DoctorPreview(d){openDoctor(d,"")}}
         MenuRow("A moment of calm","An offline grounding exercise",Icons.Default.Spa){page="calm"}
        }
-       role=="patient" && tab==1 -> {
+       role=="patient" && shownTab==1 -> {
         Heading("Your visits")
         Text("For ${patient.optString("name")}")
         Action("Book an appointment",primary=true){page="book-hospital"}
         if(myVisits.isEmpty())Info("No visits yet","Your appointments will appear here after booking.")
         myVisits.reversed().forEach {v->VisitCard(v){selected=v.optString("id");page="visit"}}
        }
-       role=="patient" && tab==2 -> {
+       role=="patient" && shownTab==2 -> {
         Heading("Bills & receipts")
         val ids=myVisits.map{it.optString("id")}
         val bills=data.rows("bills").filter{it.optString("visit") in ids}
@@ -207,7 +211,7 @@ private data class Destination(val label:String,val icon:ImageVector)
         if(bills.isEmpty())Text("No bills yet. Charges will appear after booking or a doctor's order.")
         bills.forEach{bill->BillCard(bill){act(event("pay","id" to bill.optString("id")))}}
        }
-       role=="doctor" && tab==0 -> {
+       role=="doctor" && shownTab==0 -> {
         Heading("Today's queue")
         Text("${clinician.name} · ${clinician.specialty}")
         Info(if(pausedFor(clinician.name))"Queue paused" else "Ready to see patients","${assignedVisits.count{it.optString("status")=="waiting"}} waiting · ${assignedVisits.count{it.optString("status")=="active"}} in consultation")
@@ -216,14 +220,14 @@ private data class Destination(val label:String,val icon:ImageVector)
         if(queue.isEmpty())Info("No patients waiting","Visits for ${clinician.name} appear here. Choose another demo clinician from Profile to view their queue.")
         queue.forEach{v->VisitCard(v){selected=v.optString("id");page="visit"}}
        }
-       role=="doctor" && tab==1 -> {
+       role=="doctor" && shownTab==1 -> {
         Heading("Patients")
         OutlinedTextField(patientSearch,{patientSearch=it},label={Text("Search patient or token")},leadingIcon={Icon(Icons.Default.Search,null)},singleLine=true,modifier=Modifier.fillMaxWidth())
         val results=assignedVisits.filter{patientSearch.isBlank()||it.optString("name").contains(patientSearch,true)||it.optInt("token").toString().contains(patientSearch)}
         if(results.isEmpty())Text("No matching patients for this demo clinician.")
         results.reversed().forEach{v->VisitCard(v){selected=v.optString("id");page="visit"}}
        }
-       role=="hospital" && tab==0 -> {
+       role=="hospital" && shownTab==0 -> {
         Heading("Hospital overview")
         Text("St. Mathew Hospital · offline front desk")
         Info("${visits.count{it.optString("status")!="cancelled"}} appointments","${visits.count{it.optString("status")=="waiting"}} waiting · ${visits.count{it.optString("status")=="complete"}} completed")
@@ -233,7 +237,7 @@ private data class Destination(val label:String,val icon:ImageVector)
         if(visits.isEmpty())Info("Ready for your first patient","Use the Patient app to book a demo visit on this device.")
         visits.reversed().take(5).forEach{v->VisitCard(v){selected=v.optString("id");page="visit"}}
        }
-       role=="hospital" && tab==1 -> {
+       role=="hospital" && shownTab==1 -> {
         Heading("Patient check-in")
         Text("Select a confirmed visit and verify its token with the patient's pass.")
         OutlinedTextField(patientSearch,{patientSearch=it},label={Text("Search patient or token")},leadingIcon={Icon(Icons.Default.Search,null)},singleLine=true,modifier=Modifier.fillMaxWidth())
@@ -427,6 +431,7 @@ private data class Destination(val label:String,val icon:ImageVector)
      }
      Spacer(Modifier.height(12.dp))
     }}
+   }
    }
   }
   if(showDate){val dateState=rememberDatePickerState(initialSelectedDateMillis=LocalDate.parse(date).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli());DatePickerDialog(onDismissRequest={showDate=false},confirmButton={TextButton(onClick={dateState.selectedDateMillis?.let{date=Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate().toString()};showDate=false}){Text("Choose date")}},dismissButton={TextButton(onClick={showDate=false}){Text("Cancel")}}){DatePicker(state=dateState)}}

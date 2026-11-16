@@ -7,6 +7,9 @@ const visit = {patientUid:'patient1', doctorUid:'doctor1', hospitalId:'hospital1
 test('requires verified identity and prevents privileged users acting as patients', () => {
   assert.throws(() => principal(null));
   assert.throws(() => principal({uid:'p',token:{email_verified:false}}));
+  assert.equal(patient({uid:'phone1',token:{firebase:{sign_in_provider:'phone'},phone_number:'+15555550123'}}).uid, 'phone1');
+  assert.throws(() => principal({uid:'staff',token:{firebase:{sign_in_provider:'phone'},phone_number:'+15555550123',flowcare_role:'hq'}}));
+  assert.throws(() => principal({uid:'p',token:{firebase:{sign_in_provider:'password'},phone_number:'+15555550123'}}));
   assert.throws(() => patient(auth('hq1','hq')));
   assert.equal(patient(auth('patient1','patient')).uid, 'patient1');
   assert.throws(() => identifier('../other','id'));
@@ -35,3 +38,4 @@ test('only the owner may cancel a confirmed visit', () => {
   assert.equal(mayCancel(principal(auth('patient2','patient')),{...visit,status:'confirmed'}),false);
   assert.equal(mayCancel(principal(auth('hq1','hq','hospital1')),{...visit,status:'confirmed'}),false);
 });
+

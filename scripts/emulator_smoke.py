@@ -28,7 +28,7 @@ def launch(role,first=False):
 def dashboard(role):
  launch(role)
  for _ in range(4):
-  if any(n.get('text')=='Profile' for n in nodes()):return
+  if any(n.get('text')=='Profile' or n.get('content-desc')=='Profile' for n in nodes()):return
   adb('shell','input','keyevent','KEYCODE_BACK')
  raise AssertionError('Could not return to main navigation')
 def fail(kind,value,tb):
@@ -40,7 +40,7 @@ sys.excepthook=fail
 # All functions below must work without network access.
 adb('shell','svc','wifi','disable');adb('shell','svc','data','disable')
 launch('hospital',True);find('Hospital overview');screen('01-hospital-overview')
-launch('patient');tap('Manage a real account',True);find('FlowCare account');find('Create a patient account',scroll=True);screen('02-account-entry')
+launch('patient');tap('Sign in with phone',True);find('FlowCare account');find('Phone number',scroll=True);screen('02-account-entry')
 adb('shell','input','keyevent','KEYCODE_BACK');tap('Use demo account',True);find('Hello, Maya');screen('02-patient-home')
 tap('Family');find('Who are you caring for?');adb('shell','input','keyevent','KEYCODE_BACK');find('Hello, Maya')
 tap('Search doctors or departments')
@@ -72,3 +72,4 @@ print('PASS: offline patient booking → hospital check-in → doctor consultati
 
 launch('hq');find('HQ control');tap('Notifications');find('Remote service not connected');screen('12-hq-notifications')
 tap('Settings');tap('Manage a real account',True);find('FlowCare account');adb('shell','input','keyevent','KEYCODE_BACK');find('Connection & privacy')
+

@@ -7,9 +7,11 @@ function identifier(value, field) {
   return value;
 }
 function principal(auth) {
-  if (!auth || !auth.uid || auth.token.email_verified !== true) throw new Error('Verified sign-in required');
+  if (!auth || !auth.uid || !auth.token) throw new Error('Verified sign-in required');
   const role = auth.token.flowcare_role || 'patient';
   if (!['patient', 'doctor', 'hospital', 'hq'].includes(role)) throw new Error('Invalid role');
+  const verifiedPhone = role === 'patient' && auth.token.firebase?.sign_in_provider === 'phone' && typeof auth.token.phone_number === 'string' && auth.token.phone_number.length > 0;
+  if (auth.token.email_verified !== true && !verifiedPhone) throw new Error('Verified sign-in required');
   return {uid: identifier(auth.uid, 'user'), role, hospital: auth.token.hospital_id};
 }
 function patient(auth) {
@@ -35,3 +37,4 @@ function mayTransition(p, visit, next) {
   return (transitions[visit.status] || []).includes(next);
 }
 module.exports = {identifier, principal, patient, mayRead, mayCancel, mayTransition};
+

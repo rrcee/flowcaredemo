@@ -1,6 +1,7 @@
 package com.flowcare
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -28,10 +29,9 @@ import org.json.JSONObject
             border = BorderStroke(1.dp, c.outlineVariant), modifier = Modifier.fillMaxWidth()) {
             NavigationBar(containerColor = Color.Transparent, tonalElevation = 0.dp, windowInsets = WindowInsets(0, 0, 0, 0)) {
                 items.forEachIndexed { index, item ->
+                    val iconSize = animateDpAsState(if (selected == index) 32.dp else 28.dp, label = "dock icon size")
                     NavigationBarItem(selected = selected == index, onClick = { onSelect(index) },
-                        icon = { Icon(item.second, contentDescription = null) },
-                        label = { Text(item.first, style = MaterialTheme.typography.labelMedium, maxLines = 2) },
-                        alwaysShowLabel = true,
+                        icon = { Icon(item.second, contentDescription = item.first, modifier = Modifier.size(iconSize.value)) },
                         colors = NavigationBarItemDefaults.colors(indicatorColor = c.primaryContainer,
                             selectedIconColor = c.primary, selectedTextColor = c.onSurface,
                             unselectedIconColor = c.onSurfaceVariant, unselectedTextColor = c.onSurfaceVariant))
