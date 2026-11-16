@@ -29,15 +29,11 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.flowcare.resources.Res
-import com.flowcare.resources.jakarta
-import org.jetbrains.compose.resources.Font
 import org.json.JSONObject
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.MultiFormatWriter
@@ -47,10 +43,6 @@ import java.time.format.DateTimeFormatter
 import java.time.Instant
 import java.time.ZoneOffset
 
-private val Blue=Color(0xFF2454C6)
-private val Ink=Color(0xFF162E58)
-private val Cream=Color(0xFFFFF8E8)
-private val Paper=Color(0xFFFFFDF5)
 private fun event(type:String,vararg values:Pair<String,Any>)=JSONObject().put("type",type).apply{values.forEach{put(it.first,it.second)}}
 private data class Destination(val label:String,val icon:ImageVector)
 
@@ -113,9 +105,8 @@ private data class Destination(val label:String,val icon:ImageVector)
  SideEffect{onThemeChanged(dark)}
  BackHandler(!logged&&signup){signup=false;loginError=""}
  BackHandler(logged&&(page.isNotEmpty()||tab!=0)){back()}
- val colors=if(dark) darkColorScheme(primary=Color(0xFFABC5FF),onPrimary=Ink,background=Color(0xFF111D32),surface=Color(0xFF1B2B46),onSurface=Cream,onBackground=Cream,onSurfaceVariant=Color(0xFFD5DFEF),secondaryContainer=Color(0xFF2D4777),onSecondaryContainer=Cream,outline=Color(0xFFABC5FF),outlineVariant=Color(0xFF6D83AC)) else lightColorScheme(primary=Blue,onPrimary=Color.White,background=Cream,surface=Paper,onSurface=Ink,onBackground=Ink,onSurfaceVariant=Color(0xFF41516C),secondaryContainer=Color(0xFFE1EAFE),onSecondaryContainer=Ink,outline=Ink,outlineVariant=Color(0xFFA2ADC0),surfaceTint=Blue)
- val font=FontFamily(Font(Res.font.jakarta))
- val type=Typography(bodyLarge=Typography().bodyLarge.copy(fontFamily=font,fontSize=18.sp,lineHeight=28.sp),bodyMedium=Typography().bodyMedium.copy(fontFamily=font,fontSize=17.sp,lineHeight=26.sp),titleLarge=Typography().titleLarge.copy(fontFamily=font,fontSize=24.sp,lineHeight=32.sp,fontWeight=FontWeight.Bold),titleMedium=Typography().titleMedium.copy(fontFamily=font,fontSize=19.sp,lineHeight=27.sp,fontWeight=FontWeight.SemiBold),titleSmall=Typography().titleSmall.copy(fontFamily=font,fontSize=17.sp,lineHeight=25.sp,fontWeight=FontWeight.SemiBold),headlineMedium=Typography().headlineMedium.copy(fontFamily=font,fontSize=28.sp,lineHeight=36.sp,fontWeight=FontWeight.Bold),labelLarge=Typography().labelLarge.copy(fontFamily=font,fontSize=16.sp,lineHeight=24.sp))
+ val colors=flowCareColors(dark)
+ val type=flowCareTypography()
  val destinations=when(role){"doctor"->listOf(Destination("Queue",Icons.Default.Groups),Destination("Patients",Icons.Default.People),Destination("Orders",Icons.Default.Assignment),Destination("Profile",Icons.Default.Person));"hospital"->listOf(Destination("Overview",Icons.Default.Dashboard),Destination("Check-in",Icons.Default.QrCodeScanner),Destination("Orders",Icons.Default.ReceiptLong),Destination("Profile",Icons.Default.Person));else->listOf(Destination("Home",Icons.Default.Home),Destination("Visits",Icons.Default.CalendarMonth),Destination("Bills",Icons.Default.ReceiptLong),Destination("Profile",Icons.Default.Person))}
  val patients=data.rows("patients")
  val patient=patients.find{it.optString("id")==patientId} ?: patients.first()
@@ -129,7 +120,7 @@ private data class Destination(val label:String,val icon:ImageVector)
  val visit=visits.find{it.optString("id")==selected}
  val current=myVisits.firstOrNull{it.optString("status") !in listOf("complete","cancelled")}
  val appName=when(role){"doctor"->"FlowCare Doctor";"hospital"->"St. Mathew Hospital";else->"FlowCare"}
- MaterialTheme(colorScheme=colors,typography=type,shapes=Shapes(small=RoundedCornerShape(16.dp),medium=RoundedCornerShape(22.dp),large=RoundedCornerShape(26.dp))){
+ MaterialTheme(colorScheme=colors,typography=type,shapes=FlowCareShapes){
   if(!logged){
    Surface(Modifier.fillMaxSize(),color=colors.background){
     Column(Modifier.safeDrawingPadding().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),verticalArrangement=Arrangement.spacedBy(20.dp)){
@@ -158,7 +149,7 @@ private data class Destination(val label:String,val icon:ImageVector)
       DropdownMenuItem(text={Text("Sign out")},onClick={menu=false;logged=false;page="";tab=0;prefs.edit().putBoolean("logged",false).apply()})
      }}
    },colors=TopAppBarDefaults.topAppBarColors(containerColor=colors.background))},
-   bottomBar={if(page.isBlank())NavigationBar(containerColor=colors.surface,tonalElevation=0.dp){destinations.forEachIndexed{i,d->NavigationBarItem(selected=tab==i,onClick={tab=i},icon={Icon(d.icon,null)},label={Text(d.label)},alwaysShowLabel=true)}}},
+   bottomBar={if(page.isBlank())NavigationBar(containerColor=colors.surface,tonalElevation=0.dp){destinations.forEachIndexed{i,d->NavigationBarItem(selected=tab==i,onClick={tab=i},icon={Icon(d.icon,null)},label={Text(d.label,style=type.labelMedium)},colors=NavigationBarItemDefaults.colors(indicatorColor=colors.secondaryContainer,selectedIconColor=colors.onSecondaryContainer,selectedTextColor=colors.onSurface,unselectedIconColor=colors.onSurfaceVariant,unselectedTextColor=colors.onSurfaceVariant),alwaysShowLabel=true)}}},
    snackbarHost={SnackbarHost(snack)}
   ){padding->
    LazyColumn(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding(),state=listState,contentPadding=PaddingValues(22.dp),verticalArrangement=Arrangement.spacedBy(18.dp)){
@@ -174,7 +165,7 @@ private data class Destination(val label:String,val icon:ImageVector)
         if(role=="patient")MenuRow("Family members","Manage who you book and pay for",Icons.Default.People){page="family"}
         MenuRow("Settings","Appearance and demo data",Icons.Default.Settings){page="settings"}
         MenuRow("Help & support","Understand the offline demo",Icons.Default.HelpOutline){page="help"}
-        Text(if(store.shared())"Shared demo data is available on this device." else "Local demo data. Install the Hospital app on this device to share visits across all three apps.",style=type.bodyMedium)
+        Text(if(store.shared())"Shared demo data is available on this device." else "Local demo data. Install the Care Team app on this device to share visits with Patient.",style=type.bodyMedium)
         Action("Sign out"){logged=false;page="";tab=0;prefs.edit().putBoolean("logged",false).apply()}
        }
        role=="patient" && tab==0 -> {
@@ -185,6 +176,7 @@ private data class Destination(val label:String,val icon:ImageVector)
         }
         CareSearchEntry {careQuery="";careFilter="All";page="search"}
         VisitHero(current,onBook={page="book-hospital"},onVisit={selected=current?.optString("id") ?: "";page=if(current?.optString("status")=="confirmed")"visit" else "queue"})
+        CareQuickActions(onVisits={tab=1},onBills={tab=2},onFamily={page="family"})
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Text("Care departments",style=type.titleMedium,modifier=Modifier.weight(1f));TextButton(onClick={page="departments"}){Text("See all")}}
         DepartmentTiles(CareCatalog.departments.take(4)){openDepartment(it)}
         Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Text("Meet your doctors",style=type.titleMedium,modifier=Modifier.weight(1f));TextButton(onClick={browseDepartment="all";doctorListParent="";page="doctors"}){Text("View all")}}
@@ -401,7 +393,7 @@ private data class Destination(val label:String,val icon:ImageVector)
        Heading("Make yourself comfortable")
        Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Text("Dark appearance",modifier=Modifier.weight(1f));Switch(checked=dark,onCheckedChange={dark=it;prefs.edit().putBoolean("dark",it).apply()})}
        Info("Text size","This app follows Android's text-size setting. Use your device Accessibility settings for larger text.")
-       Info("Offline, on this device",if(store.shared())"All three signed demo apps share local hospital data through the Hospital app. No server is involved." else "This app works on its own. Install the Hospital app to share visits with the other demo apps on this device.")
+       Info("Offline, on this device",if(store.shared())"Patient and Care Team share demo data on this device. HQ never opens clinical records. No server is involved." else "This app works on its own. Install the Hospital app to share visits with the other demo apps on this device.")
        Action("Reset demo data"){act(event("reset"));selected="";patientId="self"}
       }
       "calm" -> {
@@ -413,7 +405,7 @@ private data class Destination(val label:String,val icon:ImageVector)
       else -> {
        Heading("About this demo")
        Info("St. Mathew Hospital","A fictional hospital for demonstrating connected care. All patient and staff profiles are sample data.")
-       Text("Install Patient, Doctor and Hospital apps from the same release on one device to demonstrate the complete journey. The Hospital app keeps shared data on this device; each app also works independently.")
+       Text("Install Patient and Care Team from the same release on one device to demonstrate the care journey. Care Team contains the hospital and doctor workspaces. HQ is a separate operational app without patient-record access.")
        Text("Sign-in and payments are simulated. There is no live hospital connection, online consultation, medical advice service or emergency dispatch.")
        Text("For a real emergency, contact local emergency services.")
       }
@@ -429,11 +421,11 @@ private data class Destination(val label:String,val icon:ImageVector)
 @Composable private fun Heading(text:String,small:Boolean=false){Text(text,style=if(small)MaterialTheme.typography.titleMedium else MaterialTheme.typography.headlineMedium,modifier=Modifier.semantics{heading()})}
 @Composable private fun Action(label:String,primary:Boolean=false,enabled:Boolean=true,onClick:()->Unit){
  val c=MaterialTheme.colorScheme
- Button(onClick=onClick,enabled=enabled,modifier=Modifier.fillMaxWidth().heightIn(min=60.dp),shape=RoundedCornerShape(18.dp),border=BorderStroke(2.dp,if(enabled)c.onSurface else c.outlineVariant),colors=ButtonDefaults.buttonColors(containerColor=if(primary)c.primary else c.surface,contentColor=if(primary)c.onPrimary else c.onSurface),contentPadding=PaddingValues(18.dp)) {Text(label,style=MaterialTheme.typography.titleSmall)}
+ Button(onClick=onClick,enabled=enabled,modifier=Modifier.fillMaxWidth().heightIn(min=60.dp),shape=RoundedCornerShape(18.dp),border=if(primary)null else BorderStroke(1.dp,if(enabled)c.outline else c.outlineVariant),colors=ButtonDefaults.buttonColors(containerColor=if(primary)c.primary else c.surface,contentColor=if(primary)c.onPrimary else c.onSurface),contentPadding=PaddingValues(18.dp)) {Text(label,style=MaterialTheme.typography.titleSmall)}
 }
 @Composable private fun Info(title:String,description:String){Surface(shape=RoundedCornerShape(22.dp),color=MaterialTheme.colorScheme.surface,border=BorderStroke(1.dp,MaterialTheme.colorScheme.outlineVariant),modifier=Modifier.fillMaxWidth()){Column(Modifier.padding(20.dp),verticalArrangement=Arrangement.spacedBy(10.dp)){Text(title,style=MaterialTheme.typography.titleMedium);Text(description,style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)}}}
 @Composable private fun MenuRow(title:String,subtitle:String,icon:ImageVector,onClick:()->Unit){Surface(onClick=onClick,shape=RoundedCornerShape(18.dp),color=MaterialTheme.colorScheme.surface,border=BorderStroke(1.dp,MaterialTheme.colorScheme.outlineVariant),modifier=Modifier.fillMaxWidth()){Row(Modifier.padding(18.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(14.dp)){Icon(icon,null,tint=MaterialTheme.colorScheme.primary);Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){Text(title,style=MaterialTheme.typography.titleSmall);Text(subtitle,style=MaterialTheme.typography.bodyMedium)};Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight,null)}}}
-@Composable private fun Choice(title:String,subtitle:String,selected:Boolean,onClick:()->Unit){Surface(onClick=onClick,shape=RoundedCornerShape(18.dp),color=if(selected)MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,border=BorderStroke(if(selected)2.dp else 1.dp,MaterialTheme.colorScheme.outline),modifier=Modifier.fillMaxWidth()){Row(Modifier.padding(16.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text(title,style=MaterialTheme.typography.titleMedium);Text(subtitle,style=MaterialTheme.typography.bodyMedium)};RadioButton(selected,onClick=null)}}}
+@Composable private fun Choice(title:String,subtitle:String,selected:Boolean,onClick:()->Unit){Surface(onClick=onClick,shape=RoundedCornerShape(18.dp),color=if(selected)MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface,border=BorderStroke(if(selected)2.dp else 1.dp,if(selected)MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),modifier=Modifier.fillMaxWidth()){Row(Modifier.padding(16.dp),verticalAlignment=Alignment.CenterVertically){Column(Modifier.weight(1f)){Text(title,style=MaterialTheme.typography.titleMedium);Text(subtitle,style=MaterialTheme.typography.bodyMedium)};RadioButton(selected,onClick=null)}}}
 @Composable private fun VisitCard(v:JSONObject,onClick:()->Unit){MenuRow(v.optString("name"),"${v.optString("doctor")}\n${v.optString("date")} · ${v.optString("time")}\n${v.optString("status").replaceFirstChar{it.uppercase()}} · #${v.optInt("token")}",Icons.Default.CalendarMonth,onClick)}
 @Composable private fun VisitSummary(v:JSONObject){Heading(v.optString("name"));Info(v.optString("doctor"),"${v.optString("department")}\n${v.optString("date")} · ${v.optString("time")}\nSt. Mathew Hospital\n${v.optString("status").replaceFirstChar{it.uppercase()}} · Token #${v.optInt("token")}")}
 @Composable private fun BillCard(b:JSONObject,onPay:()->Unit){Column(verticalArrangement=Arrangement.spacedBy(10.dp)){Info(b.optString("department"),"₹${b.optInt("amount")} · ${if(b.optBoolean("paid"))"Paid" else "Payment pending"}${if(b.optBoolean("ready"))" · Ready for collection" else ""}");if(!b.optBoolean("paid"))Action("Pay ₹${b.optInt("amount")} in demo",primary=true,onClick=onPay)}}
