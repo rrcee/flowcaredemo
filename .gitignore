@@ -8,6 +8,22 @@ __pycache__/
 local.properties
 .DS_Store
 
-.agents/
-skills-lock.json
+.agents/*
+!.agents/skills/
 .impeccable/
+
+# Local credentials, generated output and caches
+.env
+.env.*
+!.env.example
+**/node_modules/
+**/dist/
+**/firebase-debug.log*
+**/firestore-debug.log*
+**/.firebase/
+**/.vercel/
+**/*service-account*.json
+**/*serviceAccount*.json
+*.jks
+*.keystore
+.agents/skills/impeccable/scripts/bin/
