@@ -124,7 +124,7 @@ private data class Destination(val label:String,val icon:ImageVector)
  val appName=when(role){"doctor"->"FlowCare Doctor";"hospital"->"St. Mathew Hospital";else->"FlowCare"}
  MaterialTheme(colorScheme=colors,typography=type,shapes=FlowCareShapes){
   if(!logged&&showLiveAccount){
-   LiveAccount(onBack={showLiveAccount=false})
+   LiveAccount(onBack={showLiveAccount=false},allowPatientRegistration=appRole=="patient")
   } else if(!logged){
    Surface(Modifier.fillMaxSize(),color=colors.background){
     Column(Modifier.safeDrawingPadding().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),verticalArrangement=Arrangement.spacedBy(20.dp)){
@@ -138,7 +138,7 @@ private data class Destination(val label:String,val icon:ImageVector)
      if(loginError.isNotBlank())Text(loginError,color=colors.error)
      Action(if(signup)"Create demo profile" else "Sign in to demo",primary=true){if(!email.contains("@")||password.length<4)loginError="Enter a valid email and a demo password of at least 4 characters." else {if(signup&&loginName.isNotBlank())prefs.edit().putString("name",loginName).apply();signIn()}}
      Action("Use demo account"){signIn()}
-     if(appRole=="patient")OutlinedButton(onClick={showLiveAccount=true},modifier=Modifier.fillMaxWidth().heightIn(min=60.dp)){Text("Manage a real account")}
+     OutlinedButton(onClick={showLiveAccount=true},modifier=Modifier.fillMaxWidth().heightIn(min=60.dp)){Text("Manage a real account")}
      TextButton(onClick={signup=!signup;loginError=""}){Text(if(signup)"Already have a demo profile? Sign in" else "Create a demo profile")}
      Text("Do not enter a real password or medical information. This demo validates the form locally; it does not authenticate a real account.",style=type.bodyMedium)
     }

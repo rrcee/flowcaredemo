@@ -24,7 +24,7 @@ import kotlinx.coroutines.launch
 
 /** Account access is isolated from the offline demo until live clinical services are ready. */
 @Composable
-internal fun LiveAccount(onBack: () -> Unit) {
+internal fun LiveAccount(onBack: () -> Unit, allowPatientRegistration: Boolean = true) {
     val auth = remember { FirebaseAuth.getInstance() }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -121,8 +121,10 @@ internal fun LiveAccount(onBack: () -> Unit) {
                         }
                     }
                 }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text("Continue with Google") }
-                TextButton(onClick = { register = !register; password = ""; message = "" }, enabled = !busy) {
-                    Text(if (register) "Already have an account? Sign in" else "Create a patient account")
+                if (allowPatientRegistration) {
+                    TextButton(onClick = { register = !register; password = ""; message = "" }, enabled = !busy) {
+                        Text(if (register) "Already have an account? Sign in" else "Create a patient account")
+                    }
                 }
                 TextButton(onClick = {
                     if (!email.contains('@')) message = "Enter your email address above first."

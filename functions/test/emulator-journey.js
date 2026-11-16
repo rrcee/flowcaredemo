@@ -30,9 +30,15 @@ async function main() {
   const [one,two,doctor,otherDoctor,hq,desk] = await Promise.all([
     account('patient1'),account('patient2'),account('doctor1','doctor','hospital1'),
     account('doctor2','doctor','hospital1'),account('hq1','hq','hospital1'),account('desk1','hospital','hospital1')]);
-  const slot = db.collection('hospitals').doc('hospital1').collection('slots').doc('slot1');
-  await slot.set({status:'available',doctorUid:'doctor1',startsAt:Timestamp.fromMillis(Date.now()+86400000)});
-  const args={hospitalId:'hospital1',slotId:'slot1',requestId:'request1',patientName:'Demo Patient'};
+  const slotData={doctorUid:'doctor1',doctorName:'Dr Demo',department:'General medicine',startsAt:new Date(Date.now()+86400000).toISOString()};
+  assert.notEqual((await call('createSlot',hq,slotData)).status,200);
+  assert.notEqual((await call('createSlot',one,slotData)).status,200);
+  const createdSlot=await call('createSlot',desk,slotData);
+  assert.equal(createdSlot.status,200);
+  assert.notEqual((await call('createSlot',desk,slotData)).status,200);
+  assert.equal((await call('listAvailableSlots',one,{hospitalId:'hospital1'})).body.result.slots.length,1);
+  assert.notEqual((await call('listAvailableSlots',hq,{hospitalId:'hospital1'})).status,200);
+  const args={hospitalId:'hospital1',slotId:createdSlot.body.result.slotId,requestId:'request1',patientName:'Demo Patient'};
   const args2={...args,requestId:'request2'};
   const results=await Promise.all([call('bookVisit',one,args),call('bookVisit',two,args2)]);
   assert.equal(results.filter(r=>r.status===200).length,1,JSON.stringify(results));
@@ -44,6 +50,11 @@ async function main() {
   assert.equal((await call('bookVisit',owner,winningArgs)).body.result.visitId,visitId);
   for (const token of [stranger,otherDoctor,hq]) assert.notEqual((await call('getVisit',token,{visitId})).status,200);
   assert.equal((await call('getVisit',owner,{visitId})).status,200);
+  assert.equal((await call('listVisits',owner,{})).body.result.visits.length,1);
+  assert.equal((await call('listVisits',stranger,{})).body.result.visits.length,0);
+  assert.equal((await call('listVisits',doctor,{})).body.result.visits.length,1);
+  assert.equal((await call('listVisits',otherDoctor,{})).body.result.visits.length,0);
+  assert.notEqual((await call('listVisits',hq,{})).status,200);
   const directUrl=`http://127.0.0.1:8080/v1/projects/demo-flowcare/databases/flowcare/documents/visits/${visitId}`;
   assert.equal((await fetch(directUrl)).status,403,'anonymous Firestore access must be denied');
   assert.equal((await fetch(directUrl,{headers:{authorization:`Bearer ${hq}`}})).status,403,'HQ Firestore access must be denied');

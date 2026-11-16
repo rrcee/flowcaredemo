@@ -50,7 +50,13 @@ jobs:
           key: flowcare-offline-demo-signing-v1
       - run: gradle :composeApp:assembleDebug :composeApp:testPatientDebugUnitTest :composeApp:testHqDebugUnitTest :composeApp:testHospitalDebugUnitTest :composeApp:lintPatientDebug :composeApp:lintHqDebug :composeApp:lintHospitalDebug --stacktrace
       - name: Display debug signing certificate fingerprints
-        run: '"$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$(find composeApp/build/outputs/apk/patient/debug -name "*.apk" -print -quit)"'
+        run: |
+          for role in patient hospital hq; do
+            apk=$(find "composeApp/build/outputs/apk/$role/debug" -name '*.apk' -print -quit)
+            test -n "$apk"
+            echo "Signing certificate for $role"
+            "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$apk"
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: FlowCare-Android-debug
