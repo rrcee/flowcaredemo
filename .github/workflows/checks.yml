@@ -3,7 +3,7 @@ on: [push, pull_request, workflow_dispatch]
 permissions:
   contents: read
 concurrency:
-  group: checks-${{ github.ref }}
+  group: checks-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: false
 jobs:
   firebase-emulator:
@@ -114,3 +114,4 @@ jobs:
         with:
           name: FlowCare-native-screenshots
           path: build/native-screenshots/
+
