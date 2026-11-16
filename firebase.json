@@ -5,5 +5,15 @@
     "edition": "enterprise",
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
+  },
+  "auth": {
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "FlowCare",
+        "supportEmail": "rishirohith2099@gmail.com",
+        "authorizedRedirectUris": ["https://flowcare-b1370.firebaseapp.com/__/auth/handler"]
+      }
+    }
   }
 }

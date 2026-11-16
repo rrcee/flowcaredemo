@@ -24,7 +24,9 @@ kotlin {
         }
         commonTest.dependencies { implementation(kotlin("test")) }
         androidMain.dependencies {
-            implementation(project.dependencies.platform("com.google.firebase:firebase-bom:35.2.0"))
+            // Auth 25 requires Kotlin 2.4 metadata; this project currently uses Kotlin 2.1.
+            // Keep this temporary pin until the toolchain is upgraded for Firestore Enterprise.
+            implementation(project.dependencies.platform("com.google.firebase:firebase-bom:33.16.0"))
             implementation("com.google.firebase:firebase-auth")
             implementation("androidx.activity:activity-compose:1.10.1")
             implementation("com.google.zxing:core:3.5.3")
