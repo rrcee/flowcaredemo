@@ -12,12 +12,51 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import org.json.JSONObject
+
+/** A single, rounded navigation surface shared by every FlowCare app. */
+@Composable internal fun FlowCareDock(items: List<Pair<String, ImageVector>>, selected: Int, onSelect: (Int) -> Unit) {
+    val c = MaterialTheme.colorScheme
+    Box(Modifier.fillMaxWidth().navigationBarsPadding().padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 10.dp)) {
+        Surface(shape = RoundedCornerShape(30.dp), color = c.surface, shadowElevation = 6.dp,
+            border = BorderStroke(1.dp, c.outlineVariant), modifier = Modifier.fillMaxWidth()) {
+            NavigationBar(containerColor = Color.Transparent, tonalElevation = 0.dp, windowInsets = WindowInsets(0, 0, 0, 0)) {
+                items.forEachIndexed { index, item ->
+                    NavigationBarItem(selected = selected == index, onClick = { onSelect(index) },
+                        icon = { Icon(item.second, contentDescription = null) },
+                        label = { Text(item.first, style = MaterialTheme.typography.labelMedium, maxLines = 2) },
+                        alwaysShowLabel = true,
+                        colors = NavigationBarItemDefaults.colors(indicatorColor = c.primaryContainer,
+                            selectedIconColor = c.primary, selectedTextColor = c.onSurface,
+                            unselectedIconColor = c.onSurfaceVariant, unselectedTextColor = c.onSurfaceVariant))
+                }
+            }
+        }
+    }
+}
+
+@Composable internal fun ProfileHero(name: String, email: String, description: String) {
+    val c = MaterialTheme.colorScheme
+    Surface(shape = RoundedCornerShape(28.dp), color = c.primaryContainer, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.background(Brush.verticalGradient(listOf(c.primaryContainer, c.surface))).padding(22.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Surface(shape = RoundedCornerShape(20.dp), color = c.surface, contentColor = c.primary) {
+                Box(Modifier.size(64.dp), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.PersonOutline, null, modifier = Modifier.size(32.dp))
+                }
+            }
+            Text(name, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
+            Text(email, style = MaterialTheme.typography.bodyMedium, color = c.onSurfaceVariant)
+            Text(description, style = MaterialTheme.typography.bodySmall, color = c.onSurfaceVariant)
+        }
+    }
+}
 
 internal fun departmentIcon(id: String): ImageVector = when (id) {
     "heart" -> Icons.Default.FavoriteBorder
@@ -154,3 +193,4 @@ internal fun departmentIcon(id: String): ImageVector = when (id) {
         }
     }
 }
+

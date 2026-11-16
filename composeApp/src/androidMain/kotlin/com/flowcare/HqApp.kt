@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.sp
  FlowCareTheme {
  BackHandler(showAccount) { showAccount=false }
  if(showAccount) LiveAccount(onBack={showAccount=false},allowPatientRegistration=false,allowLiveCare=false) else {
- Scaffold(containerColor=MaterialTheme.colorScheme.background,topBar={TopAppBar(title={Text("FlowCare HQ", style=MaterialTheme.typography.titleMedium)},colors=TopAppBarDefaults.topAppBarColors(containerColor=MaterialTheme.colorScheme.background))},bottomBar={NavigationBar(containerColor=MaterialTheme.colorScheme.surface,tonalElevation=0.dp) {labels.forEachIndexed { i,label -> NavigationBarItem(selected=tab==i,onClick={tab=i},icon={Icon(icons[i],null)},label={Text(label,style=MaterialTheme.typography.labelMedium)},colors=NavigationBarItemDefaults.colors(indicatorColor=MaterialTheme.colorScheme.secondaryContainer))}}}) { padding ->
+ Scaffold(containerColor=MaterialTheme.colorScheme.background,topBar={TopAppBar(title={Text("FlowCare HQ", style=MaterialTheme.typography.titleMedium)},colors=TopAppBarDefaults.topAppBarColors(containerColor=MaterialTheme.colorScheme.background))},bottomBar={FlowCareDock(labels.zip(icons),tab){tab=it}}) { padding ->
  Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp),verticalArrangement=Arrangement.spacedBy(20.dp)) {
  Text(when(tab){0->"HQ control";1->"Create an announcement";2->"App updates";else->"Connection & privacy"},style=MaterialTheme.typography.headlineMedium)
  Card(Modifier.fillMaxWidth(),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.primaryContainer)) {Column(Modifier.padding(20.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {Text("Remote service not connected",style=MaterialTheme.typography.titleMedium);Text("Firebase and secure HQ authentication must be configured before announcements or controls can reach devices.",style=MaterialTheme.typography.bodyLarge)}}
@@ -44,3 +44,4 @@ import androidx.compose.ui.unit.sp
  }
  }
 }
+

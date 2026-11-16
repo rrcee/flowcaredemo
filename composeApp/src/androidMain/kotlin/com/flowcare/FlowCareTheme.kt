@@ -28,11 +28,11 @@ internal fun flowCareColors(dark: Boolean = false): ColorScheme = if (dark) {
 } else {
     lightColorScheme(
         primary = Color(0xFF145B73), onPrimary = Color.White,
-        primaryContainer = Color(0xFFD5EDFA), onPrimaryContainer = Color(0xFF153E50),
+        primaryContainer = Color(0xFFD9EFF9), onPrimaryContainer = Color(0xFF153E50),
         secondary = Color(0xFF176B5C), onSecondary = Color.White,
         secondaryContainer = Color(0xFFDDF3EB), onSecondaryContainer = Color(0xFF164C41),
-        background = Color(0xFFF4F8FA), onBackground = Color(0xFF142F3E),
-        surface = Color(0xFFFFFFFF), onSurface = Color(0xFF142F3E),
+        background = Color(0xFFFFFAF1), onBackground = Color(0xFF142F3E),
+        surface = Color(0xFFFFFEFB), onSurface = Color(0xFF142F3E),
         surfaceVariant = Color(0xFFE6F0F5), onSurfaceVariant = Color(0xFF49616E),
         outline = Color(0xFF708792), outlineVariant = Color(0xFFCEDFE6),
         surfaceTint = Color(0xFF145B73),
@@ -69,3 +69,4 @@ internal val FlowCareShapes = Shapes(
 internal fun FlowCareTheme(dark: Boolean = false, content: @Composable () -> Unit) {
     MaterialTheme(colorScheme = flowCareColors(dark), typography = flowCareTypography(), shapes = FlowCareShapes, content = content)
 }
+

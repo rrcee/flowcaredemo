@@ -159,7 +159,7 @@ private data class Destination(val label:String,val icon:ImageVector)
       DropdownMenuItem(text={Text("Sign out")},onClick={menu=false;logged=false;page="";tab=0;prefs.edit().putBoolean("logged",false).apply()})
      }}
    },colors=TopAppBarDefaults.topAppBarColors(containerColor=colors.background))},
-   bottomBar={if(page.isBlank())NavigationBar(containerColor=colors.surface,tonalElevation=0.dp){destinations.forEachIndexed{i,d->NavigationBarItem(selected=tab==i,onClick={tab=i},icon={Icon(d.icon,null)},label={Text(d.label,style=type.labelMedium)},colors=NavigationBarItemDefaults.colors(indicatorColor=colors.secondaryContainer,selectedIconColor=colors.onSecondaryContainer,selectedTextColor=colors.onSurface,unselectedIconColor=colors.onSurfaceVariant,unselectedTextColor=colors.onSurfaceVariant),alwaysShowLabel=true)}}},
+   bottomBar={if(page.isBlank())FlowCareDock(destinations.map{it.label to it.icon},tab){tab=it}},
    snackbarHost={SnackbarHost(snack)}
   ){padding->
    LazyColumn(Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding).imePadding(),state=listState,contentPadding=PaddingValues(22.dp),verticalArrangement=Arrangement.spacedBy(18.dp)){
@@ -167,10 +167,8 @@ private data class Destination(val label:String,val icon:ImageVector)
      if(page.isBlank()) {
       when {
        tab==3 -> {
-        Image(painterResource(R.drawable.ic_launcher),contentDescription=null,modifier=Modifier.size(72.dp))
-        Heading(when(role){"doctor"->clinician.name;"hospital"->"Hospital front desk";else->prefs.getString("name",null) ?: patient.optString("name")})
-        Text(prefs.getString("email",email) ?: email)
-        Info("St. Mathew Hospital","Fictional hospital · offline demo")
+        ProfileHero(when(role){"doctor"->clinician.name;"hospital"->"Hospital front desk";else->prefs.getString("name",null) ?: patient.optString("name")},prefs.getString("email",email) ?: email,"St. Mathew Hospital · offline demo")
+        Heading("Your account",small=true)
         if(role=="doctor")MenuRow("Demo clinician",clinician.specialty,Icons.Default.Badge){page="clinician-switch"}
         if(role=="patient")MenuRow("Family members","Manage who you book and pay for",Icons.Default.People){page="family"}
         MenuRow("Settings","Appearance and demo data",Icons.Default.Settings){page="settings"}
@@ -401,7 +399,14 @@ private data class Destination(val label:String,val icon:ImageVector)
       }
       "settings" -> {
        Heading("Make yourself comfortable")
-       Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically){Text("Dark appearance",modifier=Modifier.weight(1f));Switch(checked=dark,onCheckedChange={dark=it;prefs.edit().putBoolean("dark",it).apply()})}
+       Text("Adjust the app to feel right for you.",style=type.bodyMedium,color=colors.onSurfaceVariant)
+       Surface(shape=RoundedCornerShape(24.dp),color=colors.surface,border=BorderStroke(1.dp,colors.outlineVariant),modifier=Modifier.fillMaxWidth()){
+        Row(Modifier.padding(20.dp),horizontalArrangement=Arrangement.spacedBy(14.dp),verticalAlignment=Alignment.CenterVertically){
+         Icon(Icons.Default.DarkMode,null,tint=colors.primary,modifier=Modifier.background(colors.primaryContainer,RoundedCornerShape(14.dp)).padding(10.dp).size(24.dp))
+         Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)){Text("Dark appearance",style=type.titleSmall);Text("A softer look in low light",style=type.bodySmall,color=colors.onSurfaceVariant)}
+         Switch(checked=dark,onCheckedChange={dark=it;prefs.edit().putBoolean("dark",it).apply()})
+        }
+       }
        Info("Text size","This app follows Android's text-size setting. Use your device Accessibility settings for larger text.")
        Info("Offline, on this device",if(store.shared())"Patient and Care Team share demo data on this device. HQ never opens clinical records. No server is involved." else "This app works on its own. Install the Hospital app to share visits with the other demo apps on this device.")
        Action("Reset demo data"){act(event("reset"));selected="";patientId="self"}
