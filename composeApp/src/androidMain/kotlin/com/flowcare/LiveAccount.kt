@@ -24,7 +24,7 @@ import kotlinx.coroutines.launch
 
 /** Account access is isolated from the offline demo until live clinical services are ready. */
 @Composable
-internal fun LiveAccount(onBack: () -> Unit, allowPatientRegistration: Boolean = true) {
+internal fun LiveAccount(onBack: () -> Unit, allowPatientRegistration: Boolean = true, allowLiveCare: Boolean = true) {
     val auth = remember { FirebaseAuth.getInstance() }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -34,22 +34,30 @@ internal fun LiveAccount(onBack: () -> Unit, allowPatientRegistration: Boolean =
     var register by rememberSaveable { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("") }
+    var showCare by remember { mutableStateOf(false) }
     DisposableEffect(auth) {
         val listener = FirebaseAuth.AuthStateListener { user = it.currentUser }
         auth.addAuthStateListener(listener)
         onDispose { auth.removeAuthStateListener(listener) }
+    }
+    if (showCare && user != null) {
+        LiveCare(user = user!!, staffApp = !allowPatientRegistration, onBack = { showCare = false })
+        return
     }
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.safeDrawingPadding().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)) {
             TextButton(onClick = onBack) { Text("Back to demo") }
             Text("FlowCare account", style = MaterialTheme.typography.headlineMedium)
-            Text("Account sign-in is being connected. Appointments and clinical services are not available through this account yet.",
+            Text("This is separate from the offline demo. Connected care requires an available service and the appropriate account access.",
                 style = MaterialTheme.typography.bodyMedium)
             val current = user
             if (current != null) {
                 Text("Signed in as ${current.email ?: "FlowCare user"}", style = MaterialTheme.typography.titleMedium)
                 Text(if (current.isEmailVerified) "Email verified" else "Email not verified", style = MaterialTheme.typography.bodyMedium)
+                if (current.isEmailVerified && allowLiveCare) {
+                    OutlinedButton(onClick={showCare=true}, modifier=Modifier.fillMaxWidth().heightIn(min=56.dp)) { Text("Open connected care") }
+                }
                 if (!current.isEmailVerified) {
                     OutlinedButton(onClick = {
                         busy = true

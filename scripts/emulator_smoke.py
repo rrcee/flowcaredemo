@@ -71,3 +71,4 @@ adb('shell','settings','put','system','font_scale','1.3');time.sleep(2);find('Fa
 print('PASS: offline patient booking → hospital check-in → doctor consultation/lab/Rx → patient payment → hospital fulfillment → patient aftercare, profile and large text.')
 
 launch('hq');find('HQ control');tap('Notifications');find('Remote service not connected');screen('12-hq-notifications')
+tap('Settings');tap('Manage a real account',True);find('FlowCare account');adb('shell','input','keyevent','KEYCODE_BACK');find('Connection & privacy')

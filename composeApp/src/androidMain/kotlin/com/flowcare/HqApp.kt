@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.sp
  val icons=listOf(Icons.Default.Dashboard,Icons.Default.Notifications,Icons.Default.SystemUpdate,Icons.Default.Settings)
  FlowCareTheme {
  BackHandler(showAccount) { showAccount=false }
- if(showAccount) LiveAccount(onBack={showAccount=false},allowPatientRegistration=false) else {
+ if(showAccount) LiveAccount(onBack={showAccount=false},allowPatientRegistration=false,allowLiveCare=false) else {
  Scaffold(containerColor=MaterialTheme.colorScheme.background,topBar={TopAppBar(title={Text("FlowCare HQ", style=MaterialTheme.typography.titleMedium)},colors=TopAppBarDefaults.topAppBarColors(containerColor=MaterialTheme.colorScheme.background))},bottomBar={NavigationBar(containerColor=MaterialTheme.colorScheme.surface,tonalElevation=0.dp) {labels.forEachIndexed { i,label -> NavigationBarItem(selected=tab==i,onClick={tab=i},icon={Icon(icons[i],null)},label={Text(label,style=MaterialTheme.typography.labelMedium)},colors=NavigationBarItemDefaults.colors(indicatorColor=MaterialTheme.colorScheme.secondaryContainer))}}}) { padding ->
  Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp),verticalArrangement=Arrangement.spacedBy(20.dp)) {
  Text(when(tab){0->"HQ control";1->"Create an announcement";2->"App updates";else->"Connection & privacy"},style=MaterialTheme.typography.headlineMedium)
