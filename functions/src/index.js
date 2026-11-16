@@ -140,6 +140,83 @@ exports.cancelVisit = onCall(options, async request => {
   });
 });
 
+const DEMO_ORDERS = Object.freeze({lab: {label:'Blood test', amount:450}, pharmacy: {label:'Pharmacy items', amount:300}});
+exports.addDemoOrder = onCall(options, async request => {
+  const p = requirePrincipal(request.auth);
+  const visitId = id(request.data?.visitId, 'visit');
+  const requestId = id(request.data?.requestId, 'request');
+  const kind = request.data?.kind;
+  if (!Object.hasOwn(DEMO_ORDERS, kind)) throw new HttpsError('invalid-argument', 'Unknown order type.');
+  const visitRef = db.collection('visits').doc(visitId);
+  const orderId = crypto.createHash('sha256').update(`${p.uid}:${requestId}`).digest('hex');
+  const orderRef = visitRef.collection('orders').doc(orderId);
+  return db.runTransaction(async tx => {
+    const [visitSnapshot, existing] = await Promise.all([tx.get(visitRef), tx.get(orderRef)]);
+    if (!visitSnapshot.exists || !policy.mayRead(p, visitSnapshot.data())) throw new HttpsError('not-found', 'Visit not found.');
+    const visit = visitSnapshot.data();
+    if (p.role !== 'doctor') throw new HttpsError('permission-denied', 'Assigned clinician access required.');
+    if (existing.exists) {
+      if (existing.get('kind') !== kind || existing.get('createdBy') !== p.uid) throw new HttpsError('already-exists', 'This request ID was already used.');
+      return {orderId, status:existing.get('status')};
+    }
+    if (visit.status !== 'active') throw new HttpsError('failed-precondition', 'An active consultation is required.');
+    tx.create(orderRef, {kind, label:DEMO_ORDERS[kind].label, amount:DEMO_ORDERS[kind].amount,
+      status:'pending', createdBy:p.uid, createdAt:FieldValue.serverTimestamp()});
+    return {orderId,status:'pending'};
+  });
+});
+
+exports.updateDemoOrder = onCall(options, async request => {
+  const p = requirePrincipal(request.auth);
+  const visitId = id(request.data?.visitId, 'visit');
+  const orderId = id(request.data?.orderId, 'order');
+  const next = request.data?.status;
+  if (!['paid_demo','ready'].includes(next)) throw new HttpsError('invalid-argument', 'Invalid order status.');
+  const visitRef = db.collection('visits').doc(visitId);
+  const orderRef = visitRef.collection('orders').doc(orderId);
+  return db.runTransaction(async tx => {
+    const [visitSnapshot, order] = await Promise.all([tx.get(visitRef), tx.get(orderRef)]);
+    if (!visitSnapshot.exists || !policy.mayRead(p, visitSnapshot.data()) || !order.exists)
+      throw new HttpsError('not-found', 'Order not found.');
+    const current = order.get('status');
+    const authorized = (p.role === 'patient' && next === 'paid_demo') || (p.role === 'hospital' && next === 'ready');
+    if (!authorized) throw new HttpsError('permission-denied', 'This action is not available for this account.');
+    if (current === next) return {orderId,status:next};
+    if (!((current === 'pending' && next === 'paid_demo') || (current === 'paid_demo' && next === 'ready')))
+      throw new HttpsError('failed-precondition', 'This order cannot be changed to that status.');
+    tx.update(orderRef, {status:next,updatedAt:FieldValue.serverTimestamp()});
+    return {orderId,status:next};
+  });
+});
+
+exports.saveCareInstructions = onCall(options, async request => {
+  const p = requirePrincipal(request.auth);
+  const visitId = id(request.data?.visitId, 'visit');
+  const text = boundedText(request.data?.text, 'care instructions', 4000);
+  const ref = db.collection('visits').doc(visitId);
+  return db.runTransaction(async tx => {
+    const snapshot = await tx.get(ref);
+    if (!snapshot.exists || !policy.mayRead(p, snapshot.data())) throw new HttpsError('not-found', 'Visit not found.');
+    if (p.role !== 'doctor' || snapshot.get('status') !== 'active') throw new HttpsError('permission-denied', 'An active assigned consultation is required.');
+    tx.update(ref, {careInstructions:text, updatedAt:FieldValue.serverTimestamp()});
+    return {saved:true};
+  });
+});
+
+exports.getVisitDetails = onCall(options, async request => {
+  const p = requirePrincipal(request.auth);
+  const visitId = id(request.data?.visitId, 'visit');
+  const ref = db.collection('visits').doc(visitId);
+  const visit = await ref.get();
+  if (!visit.exists || !policy.mayRead(p, visit.data())) throw new HttpsError('not-found', 'Visit not found.');
+  const orders = await db.pipeline().collection(`visits/${visitId}/orders`)
+    .sort(field('createdAt').ascending()).limit(100).execute();
+  return {careInstructions:visit.get('careInstructions') || '',orders:orders.results.map(item => {
+    const o=item.data();
+    return {orderId:item.id,label:o.label,amount:o.amount,status:o.status,kind:o.kind};
+  })};
+});
+
 exports.advanceVisit = onCall(options, async request => {
   const p = requirePrincipal(request.auth);
   const visitId = id(request.data?.visitId, 'visit');

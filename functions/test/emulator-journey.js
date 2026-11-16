@@ -69,6 +69,21 @@ async function main() {
   assert.notEqual((await call('advanceVisit',otherDoctor,{visitId:replacementId,status:'active'})).status,200);
   assert.notEqual((await call('advanceVisit',doctor,{visitId:replacementId,status:'complete'})).status,200);
   assert.equal((await call('advanceVisit',doctor,{visitId:replacementId,status:'active'})).status,200);
+  const orderArgs={visitId:replacementId,requestId:'lab-request',kind:'lab'};
+  assert.notEqual((await call('addDemoOrder',otherDoctor,orderArgs)).status,200);
+  assert.notEqual((await call('addDemoOrder',owner,orderArgs)).status,200);
+  const order=await call('addDemoOrder',doctor,orderArgs);
+  assert.equal(order.status,200,JSON.stringify(order.body));
+  const orderId=order.body.result.orderId;
+  assert.equal((await call('addDemoOrder',doctor,orderArgs)).body.result.orderId,orderId);
+  assert.notEqual((await call('saveCareInstructions',otherDoctor,{visitId:replacementId,text:'Demo instructions'})).status,200);
+  assert.equal((await call('saveCareInstructions',doctor,{visitId:replacementId,text:'Demo instructions'})).status,200);
+  assert.notEqual((await call('getVisitDetails',hq,{visitId:replacementId})).status,200);
+  assert.notEqual((await call('getVisitDetails',stranger,{visitId:replacementId})).status,200);
+  assert.equal((await call('getVisitDetails',owner,{visitId:replacementId})).body.result.careInstructions,'Demo instructions');
+  assert.notEqual((await call('updateDemoOrder',desk,{visitId:replacementId,orderId,status:'ready'})).status,200);
+  assert.equal((await call('updateDemoOrder',owner,{visitId:replacementId,orderId,status:'paid_demo'})).status,200);
+  assert.equal((await call('updateDemoOrder',desk,{visitId:replacementId,orderId,status:'ready'})).status,200);
   assert.equal((await call('advanceVisit',doctor,{visitId:replacementId,status:'complete'})).status,200);
   console.log('PASS: booking retry and slot exclusion; patient, hospital, clinician and HQ access; visit transitions.');
 }

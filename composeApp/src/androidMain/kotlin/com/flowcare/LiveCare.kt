@@ -24,6 +24,13 @@ internal fun LiveCare(user: FirebaseUser, staffApp: Boolean, onBack: () -> Unit)
     var screen by rememberSaveable { mutableStateOf("visits") }
     var slots by remember { mutableStateOf<List<Map<*, *>>>(emptyList()) }
     var visits by remember { mutableStateOf<List<Map<*, *>>>(emptyList()) }
+    var orders by remember { mutableStateOf<List<Map<*, *>>>(emptyList()) }
+    var careInstructions by remember { mutableStateOf("") }
+    var instructionDraft by remember { mutableStateOf("") }
+    var detailVisitId by rememberSaveable { mutableStateOf("") }
+    var detailVisitStatus by rememberSaveable { mutableStateOf("") }
+    var orderRequestId by rememberSaveable { mutableStateOf("") }
+    var orderRequestKind by rememberSaveable { mutableStateOf("") }
     var selectedSlot by rememberSaveable { mutableStateOf("") }
     var requestId by rememberSaveable { mutableStateOf("") }
     var patientName by rememberSaveable { mutableStateOf("") }
@@ -59,6 +66,10 @@ internal fun LiveCare(user: FirebaseUser, staffApp: Boolean, onBack: () -> Unit)
     }
     fun loadSlots() = call("listAvailableSlots", mapOf("hospitalId" to "st-mathew")) { result ->
         slots = (result["slots"] as? List<*>)?.filterIsInstance<Map<*, *>>() ?: emptyList()
+    }
+    fun loadDetails(visitId: String) = call("getVisitDetails", mapOf("visitId" to visitId)) { result ->
+        orders = (result["orders"] as? List<*>)?.filterIsInstance<Map<*, *>>() ?: emptyList()
+        careInstructions = result["careInstructions"] as? String ?: ""
     }
     LaunchedEffect(user.uid) {
         user.getIdToken(true).addOnCompleteListener { task ->
@@ -100,6 +111,9 @@ internal fun LiveCare(user: FirebaseUser, staffApp: Boolean, onBack: () -> Unit)
                                     Text(visit["patientName"] as? String ?: "Patient", style = MaterialTheme.typography.titleMedium)
                                     Text("${visit["doctorName"] ?: "Care team"} · ${visit["department"] ?: "Care"}")
                                     Text("${visit["startsAt"] ?: ""}\n${state.replaceFirstChar { it.uppercase() }}")
+                                    OutlinedButton(onClick = {
+                                        detailVisitId = visitId; detailVisitStatus = state; screen = "details"; loadDetails(visitId)
+                                    }, enabled = !busy) { Text("Visit details") }
                                     val next = when { role == "hospital" && state == "confirmed" -> "waiting"; role == "doctor" && state == "waiting" -> "active"; role == "doctor" && state == "active" -> "complete"; else -> null }
                                     if (role == "patient" && state == "confirmed") OutlinedButton(onClick = { cancelId = visitId }, enabled = !busy) { Text("Cancel visit") }
                                     if (next != null) Button(onClick = {
@@ -109,6 +123,48 @@ internal fun LiveCare(user: FirebaseUser, staffApp: Boolean, onBack: () -> Unit)
                             }
                         }
                         OutlinedButton(onClick = { loadVisits() }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text("Refresh visits") }
+                    }
+                    "details" -> {
+                        TextButton(onClick = { screen = "visits"; loadVisits() }, enabled = !busy) { Text("Back to visits") }
+                        Text("Care instructions", style = MaterialTheme.typography.titleLarge)
+                        Text(careInstructions.ifBlank { "No instructions have been shared for this visit." })
+                        if (role == "doctor" && detailVisitStatus == "active") {
+                            OutlinedTextField(instructionDraft, { instructionDraft = it.take(4000) }, label = { Text("Care instructions") },
+                                minLines = 3, modifier = Modifier.fillMaxWidth())
+                            Button(onClick = {
+                                call("saveCareInstructions", mapOf("visitId" to detailVisitId, "text" to instructionDraft.trim())) {
+                                    instructionDraft = ""; loadDetails(detailVisitId)
+                                }
+                            }, enabled = !busy && instructionDraft.isNotBlank(), modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text("Share care instructions") }
+                            listOf("lab" to "Order blood test", "pharmacy" to "Order pharmacy items").forEach { (kind, label) ->
+                                OutlinedButton(onClick = {
+                                    if (orderRequestId.isBlank() || orderRequestKind != kind) { orderRequestId = UUID.randomUUID().toString(); orderRequestKind = kind }
+                                    call("addDemoOrder", mapOf("visitId" to detailVisitId, "requestId" to orderRequestId, "kind" to kind)) {
+                                        orderRequestId = ""; orderRequestKind = ""; loadDetails(detailVisitId)
+                                    }
+                                }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text(label) }
+                            }
+                        }
+                        Text("Orders and demo billing", style = MaterialTheme.typography.titleLarge)
+                        Text("Payments here are simulated; no money is collected.", style = MaterialTheme.typography.bodyMedium)
+                        if (orders.isEmpty() && !busy) Text("No orders have been added.")
+                        orders.forEach { order ->
+                            val orderId = order["orderId"] as? String ?: ""
+                            val orderStatus = order["status"] as? String ?: ""
+                            Card(Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(order["label"] as? String ?: "Order", style = MaterialTheme.typography.titleMedium)
+                                    Text("₹${order["amount"] ?: 0} · ${when (orderStatus) { "paid_demo" -> "Demo payment recorded"; "ready" -> "Ready"; else -> "Demo payment pending" }}")
+                                    if (role == "patient" && orderStatus == "pending") Button(onClick = {
+                                        call("updateDemoOrder", mapOf("visitId" to detailVisitId, "orderId" to orderId, "status" to "paid_demo")) { loadDetails(detailVisitId) }
+                                    }, enabled = !busy) { Text("Record demo payment") }
+                                    if (role == "hospital" && orderStatus == "paid_demo") Button(onClick = {
+                                        call("updateDemoOrder", mapOf("visitId" to detailVisitId, "orderId" to orderId, "status" to "ready")) { loadDetails(detailVisitId) }
+                                    }, enabled = !busy) { Text("Mark ready") }
+                                }
+                            }
+                        }
+                        OutlinedButton(onClick = { loadDetails(detailVisitId) }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text("Refresh details") }
                     }
                     "book" -> {
                         Text("Choose an appointment", style = MaterialTheme.typography.titleLarge)
