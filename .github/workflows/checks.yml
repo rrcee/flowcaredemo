@@ -25,6 +25,8 @@ jobs:
           path: ~/.android/debug.keystore
           key: flowcare-offline-demo-signing-v1
       - run: gradle :composeApp:assembleDebug :composeApp:testPatientDebugUnitTest :composeApp:testHqDebugUnitTest :composeApp:testHospitalDebugUnitTest :composeApp:lintPatientDebug :composeApp:lintHqDebug :composeApp:lintHospitalDebug --stacktrace
+      - name: Display debug signing certificate fingerprints
+        run: keytool -list -v -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android -keypass android | grep -E 'SHA1:|SHA256:'
       - uses: actions/upload-artifact@v4
         with:
           name: FlowCare-Android-debug

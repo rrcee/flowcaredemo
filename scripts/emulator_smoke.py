@@ -40,7 +40,8 @@ sys.excepthook=fail
 # All functions below must work without network access.
 adb('shell','svc','wifi','disable');adb('shell','svc','data','disable')
 launch('hospital',True);find('Hospital overview');screen('01-hospital-overview')
-launch('patient',True);find('Hello, Maya');screen('02-patient-home')
+launch('patient');tap('Manage a real account',True);find('FlowCare account');find('Create a patient account');screen('02-account-entry')
+tap('Back to demo');tap('Use demo account',True);find('Hello, Maya');screen('02-patient-home')
 tap('Family');find('Who are you caring for?');adb('shell','input','keyevent','KEYCODE_BACK');find('Hello, Maya')
 tap('Search doctors or departments')
 fields=[n for n in nodes() if n.get('class')=='android.widget.EditText']

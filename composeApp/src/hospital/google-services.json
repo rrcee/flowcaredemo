@@ -12,7 +12,12 @@
           "package_name": "com.flowcare.demo.hospital"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "170893917301-npenffe8i15ujipsjfmrq6so3pu565i4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBRa5iNZcw4V0CL3mCP1JRGJupp9o11fxk"
@@ -20,7 +25,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "170893917301-npenffe8i15ujipsjfmrq6so3pu565i4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     },
@@ -31,7 +41,12 @@
           "package_name": "com.flowcare.demo.hq"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "170893917301-npenffe8i15ujipsjfmrq6so3pu565i4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBRa5iNZcw4V0CL3mCP1JRGJupp9o11fxk"
@@ -39,7 +54,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "170893917301-npenffe8i15ujipsjfmrq6so3pu565i4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     },
@@ -50,7 +70,12 @@
           "package_name": "com.flowcare.demo.patient"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "170893917301-npenffe8i15ujipsjfmrq6so3pu565i4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBRa5iNZcw4V0CL3mCP1JRGJupp9o11fxk"
@@ -58,7 +83,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "170893917301-npenffe8i15ujipsjfmrq6so3pu565i4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
