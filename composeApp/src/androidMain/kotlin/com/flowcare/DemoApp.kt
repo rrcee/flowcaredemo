@@ -21,9 +21,11 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.heading
@@ -130,6 +132,8 @@ private data class Destination(val label:String,val icon:ImageVector)
     Column(Modifier.safeDrawingPadding().imePadding().verticalScroll(rememberScrollState()).padding(24.dp),verticalArrangement=Arrangement.spacedBy(20.dp)){
      Spacer(Modifier.height(16.dp));Image(painterResource(R.drawable.ic_launcher),contentDescription="$appName icon",modifier=Modifier.size(84.dp))
      Text(if(signup)"Set up your demo profile" else "Welcome to $appName",style=type.headlineMedium)
+     Image(painterResource(R.drawable.care_welcome),contentDescription=null,contentScale=ContentScale.Fit,
+      modifier=Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(24.dp)).background(colors.primaryContainer))
      Text("St. Mathew Hospital",style=type.titleMedium)
      Text("Offline demo. No real account or internet connection is needed.",style=type.bodyMedium)
      if(signup)OutlinedTextField(loginName,{loginName=it},label={Text("Full name")},singleLine=true,modifier=Modifier.fillMaxWidth())
