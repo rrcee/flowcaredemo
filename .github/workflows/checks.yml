@@ -6,6 +6,30 @@ concurrency:
   group: checks-${{ github.ref }}
   cancel-in-progress: false
 jobs:
+  firebase-emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: functions/package-lock.json
+      - run: npm ci
+        working-directory: functions
+      - run: npm test
+        working-directory: functions
+      - name: Exercise callable APIs and deny-all rules
+        env:
+          GCLOUD_PROJECT: demo-flowcare
+          FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+          FIREBASE_AUTH_EMULATOR_HOST: 127.0.0.1:9099
+        run: npx -y firebase-tools@latest emulators:exec --only auth,firestore,functions --project demo-flowcare 'node functions/test/emulator-journey.js'
   android:
     runs-on: ubuntu-latest
     steps:
@@ -26,7 +50,7 @@ jobs:
           key: flowcare-offline-demo-signing-v1
       - run: gradle :composeApp:assembleDebug :composeApp:testPatientDebugUnitTest :composeApp:testHqDebugUnitTest :composeApp:testHospitalDebugUnitTest :composeApp:lintPatientDebug :composeApp:lintHqDebug :composeApp:lintHospitalDebug --stacktrace
       - name: Display debug signing certificate fingerprints
-        run: keytool -list -v -keystore "$HOME/.android/debug.keystore" -alias androiddebugkey -storepass android -keypass android | grep -E 'SHA1:|SHA256:'
+        run: '"$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs "$(find composeApp/build/outputs/apk/patient/debug -name "*.apk" -print -quit)"'
       - uses: actions/upload-artifact@v4
         with:
           name: FlowCare-Android-debug

@@ -1,0 +1,64 @@
+'use strict';
+// Run only with the Firebase emulators and a demo project, never production.
+const assert = require('node:assert/strict');
+const {initializeApp} = require('firebase-admin/app');
+const {getAuth} = require('firebase-admin/auth');
+const {getFirestore, Timestamp} = require('firebase-admin/firestore');
+if (!process.env.FIRESTORE_EMULATOR_HOST || !process.env.FIREBASE_AUTH_EMULATOR_HOST || process.env.GCLOUD_PROJECT !== 'demo-flowcare') {
+  throw new Error('Refusing to run outside the demo Firebase emulators');
+}
+initializeApp({projectId:'demo-flowcare'});
+const db = getFirestore('flowcare');
+const auth = getAuth();
+const password = 'emulator-only-password';
+async function account(uid, role, hospital) {
+  const email = `${uid}@example.test`;
+  await auth.createUser({uid,email,password,emailVerified:true});
+  if (role) await auth.setCustomUserClaims(uid,{flowcare_role:role,hospital_id:hospital});
+  const response = await fetch('http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=demo', {
+    method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email,password,returnSecureToken:true})});
+  const body = await response.json();
+  assert.ok(body.idToken, 'auth emulator returned an ID token');
+  return body.idToken;
+}
+async function call(name, token, data) {
+  const res=await fetch(`http://127.0.0.1:5001/demo-flowcare/asia-south1/${name}`, {
+    method:'POST',headers:{'content-type':'application/json',authorization:`Bearer ${token}`},body:JSON.stringify({data})});
+  return {status:res.status,body:await res.json()};
+}
+async function main() {
+  const [one,two,doctor,otherDoctor,hq,desk] = await Promise.all([
+    account('patient1'),account('patient2'),account('doctor1','doctor','hospital1'),
+    account('doctor2','doctor','hospital1'),account('hq1','hq','hospital1'),account('desk1','hospital','hospital1')]);
+  const slot = db.collection('hospitals').doc('hospital1').collection('slots').doc('slot1');
+  await slot.set({status:'available',doctorUid:'doctor1',startsAt:Timestamp.fromMillis(Date.now()+86400000)});
+  const args={hospitalId:'hospital1',slotId:'slot1',requestId:'request1',patientName:'Demo Patient'};
+  const args2={...args,requestId:'request2'};
+  const results=await Promise.all([call('bookVisit',one,args),call('bookVisit',two,args2)]);
+  assert.equal(results.filter(r=>r.status===200).length,1,JSON.stringify(results));
+  const winningIndex=results.findIndex(r=>r.status===200);
+  const owner=winningIndex===0?one:two;
+  const stranger=winningIndex===0?two:one;
+  const winningArgs=winningIndex===0?args:args2;
+  const visitId=results[winningIndex].body.result.visitId;
+  assert.equal((await call('bookVisit',owner,winningArgs)).body.result.visitId,visitId);
+  for (const token of [stranger,otherDoctor,hq]) assert.notEqual((await call('getVisit',token,{visitId})).status,200);
+  assert.equal((await call('getVisit',owner,{visitId})).status,200);
+  const directUrl=`http://127.0.0.1:8080/v1/projects/demo-flowcare/databases/flowcare/documents/visits/${visitId}`;
+  assert.equal((await fetch(directUrl)).status,403,'anonymous Firestore access must be denied');
+  assert.equal((await fetch(directUrl,{headers:{authorization:`Bearer ${hq}`}})).status,403,'HQ Firestore access must be denied');
+  assert.notEqual((await call('cancelVisit',stranger,{visitId})).status,200);
+  assert.equal((await call('cancelVisit',owner,{visitId})).status,200);
+  assert.equal((await call('cancelVisit',owner,{visitId})).status,200,'cancel retry must be idempotent');
+  const replacement=await call('bookVisit',owner,{...winningArgs,requestId:'replacement'});
+  assert.equal(replacement.status,200,'cancelled slot should become available');
+  const replacementId=replacement.body.result.visitId;
+  assert.equal((await call('advanceVisit',desk,{visitId:replacementId,status:'waiting'})).status,200);
+  assert.notEqual((await call('cancelVisit',owner,{visitId:replacementId})).status,200);
+  assert.notEqual((await call('advanceVisit',otherDoctor,{visitId:replacementId,status:'active'})).status,200);
+  assert.notEqual((await call('advanceVisit',doctor,{visitId:replacementId,status:'complete'})).status,200);
+  assert.equal((await call('advanceVisit',doctor,{visitId:replacementId,status:'active'})).status,200);
+  assert.equal((await call('advanceVisit',doctor,{visitId:replacementId,status:'complete'})).status,200);
+  console.log('PASS: booking retry and slot exclusion; patient, hospital, clinician and HQ access; visit transitions.');
+}
+main().catch(error=>{ console.error(error); process.exitCode=1; });

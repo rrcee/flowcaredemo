@@ -8,16 +8,26 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.GoogleAuthProvider
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import kotlinx.coroutines.launch
 
 /** Account access is isolated from the offline demo until live clinical services are ready. */
 @Composable
 internal fun LiveAccount(onBack: () -> Unit) {
     val auth = remember { FirebaseAuth.getInstance() }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var user by remember { mutableStateOf<FirebaseUser?>(auth.currentUser) }
     var email by rememberSaveable { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -84,6 +94,33 @@ internal fun LiveAccount(onBack: () -> Unit) {
                 }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) {
                     Text(if (busy) "Please wait…" else if (register) "Create patient account" else "Sign in")
                 }
+                OutlinedButton(onClick = {
+                    busy = true
+                    scope.launch {
+                        try {
+                            val google = GetSignInWithGoogleOption.Builder(context.getString(R.string.default_web_client_id)).build()
+                            val request = GetCredentialRequest.Builder().addCredentialOption(google).build()
+                            val result = CredentialManager.create(context).getCredential(context, request)
+                            val credential = result.credential
+                            if (credential !is CustomCredential || credential.type != GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
+                                busy = false
+                                message = "Google sign-in was not completed. Please try again."
+                            } else {
+                                val token = GoogleIdTokenCredential.createFrom(credential.data).idToken
+                                auth.signInWithCredential(GoogleAuthProvider.getCredential(token, null)).addOnCompleteListener { task ->
+                                    busy = false
+                                    message = if (task.isSuccessful) "Signed in." else "Google sign-in was not completed. Please try again."
+                                }
+                            }
+                        } catch (_: androidx.credentials.exceptions.GetCredentialException) {
+                            busy = false
+                            message = "Google sign-in was cancelled or unavailable. Please try again."
+                        } catch (_: IllegalArgumentException) {
+                            busy = false
+                            message = "Google sign-in was not completed. Please try again."
+                        }
+                    }
+                }, enabled = !busy, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp)) { Text("Continue with Google") }
                 TextButton(onClick = { register = !register; password = ""; message = "" }, enabled = !busy) {
                     Text(if (register) "Already have an account? Sign in" else "Create a patient account")
                 }

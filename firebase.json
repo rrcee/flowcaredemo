@@ -1,4 +1,12 @@
 {
+  "functions": { "source": "functions" },
+  "emulators": {
+    "auth": { "port": 9099 },
+    "firestore": { "port": 8080, "edition": "enterprise" },
+    "functions": { "port": 5001 },
+    "ui": { "enabled": false },
+    "singleProjectMode": true
+  },
   "firestore": {
     "database": "flowcare",
     "location": "asia-south1",
