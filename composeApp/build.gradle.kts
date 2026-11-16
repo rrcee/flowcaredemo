@@ -4,6 +4,7 @@ plugins {
     id("org.jetbrains.compose")
     id("org.jetbrains.kotlin.plugin.compose")
     id("com.android.application")
+    id("com.google.gms.google-services")
 }
 kotlin {
     androidTarget { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
@@ -23,6 +24,14 @@ kotlin {
         }
         commonTest.dependencies { implementation(kotlin("test")) }
         androidMain.dependencies {
+            // Auth 25 requires Kotlin 2.4 metadata; this project currently uses Kotlin 2.1.
+            // Keep this temporary pin until the toolchain is upgraded for Firestore Enterprise.
+            implementation(project.dependencies.platform("com.google.firebase:firebase-bom:33.16.0"))
+            implementation("com.google.firebase:firebase-auth")
+            implementation("com.google.firebase:firebase-functions")
+            implementation("androidx.credentials:credentials:1.3.0")
+            implementation("androidx.credentials:credentials-play-services-auth:1.3.0")
+            implementation("com.google.android.libraries.identity.googleid:googleid:1.1.1")
             implementation("androidx.activity:activity-compose:1.10.1")
             implementation("com.google.zxing:core:3.5.3")
             implementation("androidx.compose.material:material-icons-extended:1.7.8")
@@ -34,7 +43,7 @@ kotlin {
 android {
     namespace = "com.flowcare"
     compileSdk = 35
-    defaultConfig { applicationId = "com.flowcare.demo"; minSdk = 26; targetSdk = 35; versionCode = 5; versionName = "0.5.0" }
+    defaultConfig { applicationId = "com.flowcare.demo"; minSdk = 26; targetSdk = 35; versionCode = 6; versionName = "0.6.0" }
     buildFeatures { buildConfig = true }
     flavorDimensions += "role"
     productFlavors {

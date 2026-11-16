@@ -1,0 +1,121 @@
+{
+  "project_info": {
+    "project_number": "170893917301",
+    "project_id": "flowcare-b1370",
+    "storage_bucket": "flowcare-b1370.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:170893917301:android:143d7ea33db522a40c0c3c",
+        "android_client_info": {
+          "package_name": "com.flowcare.demo.hospital"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "170893917301-lqr3jlpgtl2qpb66af11og343hj0cfk5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.flowcare.demo.hospital",
+            "certificate_hash": "5aac1352ed63a05b6f9df8cdc27fd2ddb6065811"
+          }
+        },
+        {
+          "client_id": "170893917301-npenffe8i15ujipsjfmrq6so3pu565i4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBRa5iNZcw4V0CL3mCP1JRGJupp9o11fxk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "170893917301-npenffe8i15ujipsjfmrq6so3pu565i4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:170893917301:android:d05e62577e536e430c0c3c",
+        "android_client_info": {
+          "package_name": "com.flowcare.demo.hq"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "170893917301-tbeml7itu46ahbrud2c479lrsqke2d54.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.flowcare.demo.hq",
+            "certificate_hash": "5aac1352ed63a05b6f9df8cdc27fd2ddb6065811"
+          }
+        },
+        {
+          "client_id": "170893917301-npenffe8i15ujipsjfmrq6so3pu565i4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBRa5iNZcw4V0CL3mCP1JRGJupp9o11fxk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "170893917301-npenffe8i15ujipsjfmrq6so3pu565i4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:170893917301:android:162ba0032bf044150c0c3c",
+        "android_client_info": {
+          "package_name": "com.flowcare.demo.patient"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "170893917301-vpgtjlioo7k0gpvjguvhlmgu6vhqdfd5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.flowcare.demo.patient",
+            "certificate_hash": "5aac1352ed63a05b6f9df8cdc27fd2ddb6065811"
+          }
+        },
+        {
+          "client_id": "170893917301-npenffe8i15ujipsjfmrq6so3pu565i4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBRa5iNZcw4V0CL3mCP1JRGJupp9o11fxk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "170893917301-npenffe8i15ujipsjfmrq6so3pu565i4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

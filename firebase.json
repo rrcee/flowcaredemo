@@ -1,0 +1,27 @@
+{
+  "functions": { "source": "functions" },
+  "emulators": {
+    "auth": { "port": 9099 },
+    "firestore": { "port": 8080, "edition": "enterprise" },
+    "functions": { "port": 5001 },
+    "ui": { "enabled": false },
+    "singleProjectMode": true
+  },
+  "firestore": {
+    "database": "flowcare",
+    "location": "asia-south1",
+    "edition": "enterprise",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "auth": {
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "FlowCare",
+        "supportEmail": "rishirohith2099@gmail.com",
+        "authorizedRedirectUris": ["https://flowcare-b1370.firebaseapp.com/__/auth/handler"]
+      }
+    }
+  }
+}
